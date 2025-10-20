@@ -27,7 +27,7 @@ export default function ClassroomsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="border rounded-lg">
+            <div className="rounded-lg border">
                 <Table>
                 <TableHeader>
                     <TableRow>
@@ -43,17 +43,13 @@ export default function ClassroomsPage() {
                         <TableCell>{room.capacity}</TableCell>
                         <TableCell>
                         <Badge
-                            variant={
-                            room.status === "Available"
-                                ? "secondary"
-                                : room.status === "In Use"
-                                ? "destructive"
-                                : "outline"
-                            }
                             className={cn(
-                                room.status === 'Available' && 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-                                room.status === 'In Use' && 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-                                room.status === 'Maintenance' && 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                "border-transparent",
+                                room.status === "Available"
+                                ? "bg-green-100 text-green-800 hover:bg-green-100/80"
+                                : room.status === "In Use"
+                                ? "bg-red-100 text-red-800 hover:bg-red-100/80"
+                                : "bg-yellow-100 text-yellow-800 hover:bg-yellow-100/80"
                             )}
                         >
                             {room.status}

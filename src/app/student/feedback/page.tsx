@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
-import { useFormState } from "react-dom";
+import { useEffect, useActionState } from "react";
 import { useForm } from "react-hook-form";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { users } from "@/lib/data";
@@ -20,7 +19,7 @@ const initialState: FeedbackState = {
 export default function FeedbackPage() {
   const currentUser = users.student;
   const { toast } = useToast();
-  const [state, formAction] = useFormState(submitFeedback, initialState);
+  const [state, formAction] = useActionState(submitFeedback, initialState);
   const { reset } = useForm();
 
   useEffect(() => {

@@ -1,3 +1,6 @@
+
+"use client";
+
 import {
   Table,
   TableBody,
@@ -7,7 +10,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import type { TimetableEntry } from "@/lib/data";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type TimetableProps = {
   schedule: TimetableEntry[];
@@ -17,7 +27,50 @@ type TimetableProps = {
 
 const daysOfWeek: TimetableEntry['day'][] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
+const timeSlots = Array.from({ length: 6 }, (_, i) => {
+  const startTime = 8 + i * 2;
+  return `${String(startTime).padStart(2, '0')}:00 - ${String(startTime + 2).padStart(2, '0')}:00`;
+});
+
 export default function Timetable({ schedule, title, description }: TimetableProps) {
+  const isMobile = useIsMobile();
+
+  if (isMobile) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-headline">{title}</CardTitle>
+          <CardDescription>{description}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Accordion type="single" collapsible className="w-full">
+            {daysOfWeek.map(day => (
+              <AccordionItem value={day} key={day}>
+                <AccordionTrigger>{day}</AccordionTrigger>
+                <AccordionContent>
+                  <div className="space-y-4">
+                    {schedule.filter(e => e.day === day).length > 0 ? (
+                      schedule.filter(e => e.day === day).map(entry => (
+                        <div key={entry.id} className="p-2 rounded-lg bg-secondary/50 border border-secondary">
+                           <p className="font-bold text-primary">{entry.time}</p>
+                           <p className="font-semibold text-foreground">{entry.unitCode}: {entry.unitName}</p>
+                           <p className="text-sm text-muted-foreground">{entry.lecturer}</p>
+                           <p className="text-sm text-muted-foreground mt-1">Room: {entry.room}</p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No classes scheduled for {day}.</p>
+                    )}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -36,10 +89,8 @@ export default function Timetable({ schedule, title, description }: TimetablePro
               </TableRow>
             </TableHeader>
             <TableBody>
-              {Array.from({ length: 6 }).map((_, hourIndex) => {
-                const startTime = 8 + hourIndex * 2;
-                const timeSlotLabel = `${String(startTime).padStart(2, '0')}:00 - ${String(startTime + 2).padStart(2, '0')}:00`;
-
+              {timeSlots.map((timeSlotLabel) => {
+                const startTime = parseInt(timeSlotLabel.split(':')[0], 10);
                 return (
                   <TableRow key={timeSlotLabel}>
                     <TableCell className="font-medium text-muted-foreground">{timeSlotLabel}</TableCell>

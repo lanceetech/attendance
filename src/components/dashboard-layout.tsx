@@ -68,7 +68,7 @@ export default function DashboardLayout({
           <SidebarHeader>
             <div className="flex items-center gap-2">
               <Logo className="h-8 w-8 text-primary" />
-              <span className="text-xl font-headline font-semibold">ClassSync</span>
+              <span className="text-xl font-headline font-semibold">Umma Uni</span>
             </div>
           </SidebarHeader>
           <SidebarContent>

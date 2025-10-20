@@ -5,15 +5,18 @@ import Logo from '@/components/logo';
 export default function Home() {
   return (
     <main className="flex flex-col items-center justify-center min-h-screen p-4 bg-background">
-      <div className="flex items-center gap-4 mb-8">
-        <Logo className="h-12 w-12 text-primary" />
-        <h1 className="text-4xl font-headline font-bold text-foreground">
-          ClassSync
-        </h1>
+      <div className="flex flex-col items-center gap-4 mb-6 text-center">
+        <Logo className="h-20 w-20 text-primary" />
+        <div >
+          <h1 className="text-4xl font-headline font-bold text-foreground">
+            Umma University
+          </h1>
+          <p className="text-muted-foreground">Fostering Knowledge and Innovation</p>
+        </div>
       </div>
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-headline">Welcome Back</CardTitle>
+          <CardTitle className="text-2xl font-headline">ClassSync</CardTitle>
           <CardDescription>Select your role to sign in to your dashboard</CardDescription>
         </CardHeader>
         <CardContent>
@@ -21,7 +24,7 @@ export default function Home() {
         </CardContent>
       </Card>
       <footer className="mt-8 text-sm text-muted-foreground">
-        <p>&copy; {new Date().getFullYear()} ClassSync. All rights reserved.</p>
+        <p>&copy; {new Date().getFullYear()} Umma University. All rights reserved.</p>
       </footer>
     </main>
   );

@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { users, courseUnits, classrooms } from "@/lib/data";
 import { DashboardHeader } from "@/components/dashboard-header";
-import { BookOpen, DoorOpen, AlertTriangle, Users } from "lucide-react";
+import { BookOpen, DoorOpen, AlertTriangle, Users, HardHat } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
@@ -18,7 +18,7 @@ export default function AdminDashboard() {
     <>
       <DashboardHeader title="Administrator Dashboard" user={currentUser} />
       <main className="p-4 sm:p-6">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat) => (
             <Card key={stat.title}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -37,7 +37,7 @@ export default function AdminDashboard() {
           ))}
         </div>
 
-        <div className="mt-6">
+        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
             <Card>
                 <CardHeader>
                     <CardTitle className="font-headline">Quick Actions</CardTitle>
@@ -54,18 +54,23 @@ export default function AdminDashboard() {
                     </Button>
                 </CardContent>
             </Card>
-        </div>
-
-        <div className="mt-6">
+            
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">System Status</CardTitle>
+                    <CardTitle className="font-headline flex items-center gap-2">
+                        <HardHat className="h-5 w-5 text-muted-foreground" />
+                        System Status
+                    </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex items-center justify-between">
                     <p className="text-sm text-muted-foreground">All systems are operational.</p>
+                    <Button asChild variant="outline" size="sm">
+                        <Link href="/admin/system-status">View Status</Link>
+                    </Button>
                 </CardContent>
             </Card>
         </div>
+
       </main>
     </>
   );

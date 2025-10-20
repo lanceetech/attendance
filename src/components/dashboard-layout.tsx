@@ -9,8 +9,8 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarFooter,
-  SidebarTrigger,
   SidebarInset,
+  SidebarRail,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -19,7 +19,6 @@ import {
   Calendar,
   AlertTriangle,
   DoorOpen,
-  BookOpen,
   Send,
   LogOut,
   QrCode,
@@ -36,6 +35,7 @@ const menuItems = {
     { href: "/admin/manage-schedule", label: "Manage Schedule", icon: Calendar },
     { href: "/admin/resolve-conflicts", label: "Resolve Conflicts", icon: AlertTriangle },
     { href: "/admin/classrooms", label: "Classrooms", icon: DoorOpen },
+    { href: "/admin/system-status", label: "System Status", icon: HardHat },
   ],
   lecturer: [
     { href: "/lecturer", label: "My Timetable", icon: Calendar },
@@ -51,9 +51,11 @@ const menuItems = {
 export default function DashboardLayout({
   children,
   role,
+  collapsible = "offcanvas",
 }: {
   children: React.ReactNode;
   role: Role;
+  collapsible?: "offcanvas" | "icon";
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -61,8 +63,8 @@ export default function DashboardLayout({
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen bg-background">
-        <Sidebar>
+      <div className="min-h-screen bg-secondary/20">
+        <Sidebar collapsible={collapsible}>
           <SidebarHeader>
             <div className="flex items-center gap-2">
               <Logo className="h-8 w-8 text-primary" />
@@ -76,7 +78,7 @@ export default function DashboardLayout({
                   <Link href={item.href} passHref>
                     <SidebarMenuButton
                       isActive={pathname === item.href}
-                      tooltip={{ children: item.label }}
+                      tooltip={item.label}
                     >
                       <item.icon />
                       <span>{item.label}</span>
@@ -92,15 +94,9 @@ export default function DashboardLayout({
               <span>Logout</span>
             </Button>
           </SidebarFooter>
+          <SidebarRail />
         </Sidebar>
         <SidebarInset>
-            <div className="md:hidden flex items-center p-2 border-b">
-                <SidebarTrigger />
-                 <div className="flex items-center gap-2 mx-auto">
-                    <Logo className="h-6 w-6 text-primary" />
-                    <span className="text-lg font-headline font-semibold">ClassSync</span>
-                </div>
-            </div>
             {children}
         </SidebarInset>
       </div>

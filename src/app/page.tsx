@@ -6,7 +6,7 @@ export default function Home() {
   return (
     <main className="flex flex-col items-center justify-center min-h-screen p-4 bg-background">
       <div className="flex flex-col items-center gap-4 mb-6 text-center">
-        <Logo className="h-20 w-20 text-primary" />
+        <Logo className="h-20 w-20" />
         <div >
           <h1 className="text-4xl font-headline font-bold text-foreground">
             Umma University

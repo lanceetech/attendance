@@ -289,7 +289,7 @@ const SidebarRail = React.forwardRef<
   HTMLButtonElement,
   React.ComponentProps<"button">
 >(({ className, ...props }, ref) => {
-  const { toggleSidebar }_ = useSidebar()
+  const { toggleSidebar } = useSidebar()
 
   return (
     <button
@@ -588,7 +588,7 @@ const SidebarMenuButton = React.forwardRef<
         <TooltipContent
           side="right"
           align="center"
-          hidden={!mounted || state !== "collapsed" || isMobile}
+          hidden={!mounted || (state !== "collapsed" && !isMobile)}
           {...tooltip}
         />
       </Tooltip>

@@ -11,6 +11,8 @@ import { useToast } from '@/hooks/use-toast';
 import { FileUp, Loader2 } from 'lucide-react';
 import { useFirestore } from '@/firebase';
 import { collection, writeBatch, Timestamp, doc } from 'firebase/firestore';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const exampleCsv = `unitId,lecturerId,lecturerName,roomId,day,time,unitCode,unitName,room,studentIds
 unit-001,lec-001,Dr. Alan Grant,room-001,Monday,08:00 - 10:00,CS101,Introduction to Computer Science,Room 101,student-001;student-002
@@ -37,7 +39,7 @@ export default function UploadTimetablePage() {
     Papa.parse(csvData, {
       header: true,
       skipEmptyLines: true,
-      complete: async (results) => {
+      complete: (results) => {
         if (results.errors.length) {
           toast({
             variant: 'destructive',
@@ -55,12 +57,11 @@ export default function UploadTimetablePage() {
         }
 
         const batch = writeBatch(firestore);
+        const allRows = results.data as any[];
 
-        try {
-          for (const row of results.data as any[]) {
+        for (const row of allRows) {
             const [startHour, endHour] = row.time.split(' - ').map((t: string) => parseInt(t.split(':')[0]));
             
-            // Create a base date and set hours for start and end times
             const baseDate = new Date();
             baseDate.setMinutes(0);
             baseDate.setSeconds(0);
@@ -86,42 +87,47 @@ export default function UploadTimetablePage() {
               endTime: Timestamp.fromDate(endTime),
             };
 
-            // Add to main classes collection
-            const classRef = collection(firestore, 'classes');
-            batch.set(doc(classRef), classData);
+            const classRef = doc(collection(firestore, 'classes'));
+            batch.set(classRef, classData);
 
-            // Add to lecturer's timetable
-            const lecturerTimetableRef = collection(firestore, 'lecturerTimetable');
-            batch.set(doc(lecturerTimetableRef), classData);
+            const lecturerTimetableRef = doc(collection(firestore, 'lecturerTimetable'));
+            batch.set(lecturerTimetableRef, classData);
             
-            // Add to each student's timetable
             const studentIds = (row.studentIds || '').split(';').filter(Boolean);
             if (studentIds.length > 0) {
-                const studentTimetableRef = collection(firestore, 'studentTimetable');
-                // In a real scenario with user-specific timetables, you might add this to a user's subcollection.
-                // For this demo, we add a general entry.
-                batch.set(doc(studentTimetableRef), { ...classData, studentIds });
+                const studentTimetableRef = doc(collection(firestore, 'studentTimetable'));
+                batch.set(studentTimetableRef, { ...classData, studentIds });
             }
-          }
-          
-          await batch.commit();
-
-          toast({
-            title: 'Upload Successful',
-            description: `Successfully processed ${results.data.length} timetable entries.`,
-          });
-          setCsvData('');
-
-        } catch (error: any) {
-          console.error("Error writing to Firestore: ", error);
-          toast({
-            variant: 'destructive',
-            title: 'Firestore Error',
-            description: 'Could not save timetable data. ' + error.message,
-          });
-        } finally {
-          setIsUploading(false);
         }
+        
+        batch.commit()
+            .then(() => {
+                toast({
+                    title: 'Upload Successful',
+                    description: `Successfully processed ${results.data.length} timetable entries.`,
+                });
+                setCsvData('');
+            })
+            .catch((error) => {
+                const contextualError = new FirestorePermissionError({
+                    path: 'batch write', // Path is indicative for batch operations
+                    operation: 'write',
+                    requestResourceData: { 
+                        message: `Batch write failed for ${allRows.length} documents.`,
+                        sampleData: allRows.length > 0 ? allRows[0] : null
+                    },
+                });
+                errorEmitter.emit('permission-error', contextualError);
+                toast({
+                    variant: 'destructive',
+                    title: 'Firestore Error',
+                    description: 'Could not save timetable data. Check console for details.',
+                });
+            })
+            .finally(() => {
+                setIsUploading(false);
+            });
+
       },
       error: (error) => {
         toast({

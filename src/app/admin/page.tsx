@@ -1,22 +1,47 @@
+'use client';
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { users, courseUnits, classrooms } from "@/lib/data";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { BookOpen, DoorOpen, AlertTriangle, Users, HardHat } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-
-const stats = [
-  { title: "Total Units", value: courseUnits.length, icon: BookOpen, href: "/admin/manage-schedule" },
-  { title: "Active Conflicts", value: 2, icon: AlertTriangle, href: "/admin/resolve-conflicts" },
-  { title: "Classrooms", value: classrooms.length, icon: DoorOpen, href: "/admin/classrooms" },
-  { title: "Total Users", value: Object.keys(users).length, icon: Users, href: "#" },
-];
+import { useCollection } from "@/firebase";
+import { collection } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
+import { useMemo } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AdminDashboard() {
-  const currentUser = users.admin;
+  const firestore = useFirestore();
+
+  const courseUnitsQuery = useMemo(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'courseUnits');
+  }, [firestore]);
+  const { data: courseUnits, isLoading: loadingUnits } = useCollection(courseUnitsQuery);
+  
+  const classroomsQuery = useMemo(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'classrooms');
+  }, [firestore]);
+  const { data: classrooms, isLoading: loadingClassrooms } = useCollection(classroomsQuery);
+  
+  const usersQuery = useMemo(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'users');
+  }, [firestore]);
+  const { data: users, isLoading: loadingUsers } = useCollection(usersQuery);
+
+  const stats = [
+    { title: "Total Units", value: courseUnits?.length ?? 0, icon: BookOpen, href: "/admin/manage-schedule", isLoading: loadingUnits },
+    { title: "Active Conflicts", value: 2, icon: AlertTriangle, href: "/admin/resolve-conflicts", isLoading: false }, // Mocked for now
+    { title: "Classrooms", value: classrooms?.length ?? 0, icon: DoorOpen, href: "/admin/classrooms", isLoading: loadingClassrooms },
+    { title: "Total Users", value: users?.length ?? 0, icon: Users, href: "#", isLoading: loadingUsers },
+  ];
+
   return (
     <>
-      <DashboardHeader title="Administrator Dashboard" user={currentUser} />
+      <DashboardHeader title="Administrator Dashboard" />
       <main className="p-4 sm:p-6">
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat) => (
@@ -28,7 +53,11 @@ export default function AdminDashboard() {
                 <stat.icon className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
+                {stat.isLoading ? (
+                  <Skeleton className="h-8 w-1/2" />
+                ) : (
+                  <div className="text-2xl font-bold">{stat.value}</div>
+                )}
                 <Link href={stat.href} className="text-xs text-muted-foreground hover:text-primary">
                   View details
                 </Link>

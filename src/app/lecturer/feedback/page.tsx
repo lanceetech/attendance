@@ -1,46 +1,73 @@
 "use client";
 
-import { useEffect, useActionState } from "react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { DashboardHeader } from "@/components/dashboard-header";
-import { users } from "@/lib/data";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { submitFeedback, FeedbackState } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
 import { Send } from "lucide-react";
+import { useFirestore, useUser } from "@/firebase";
+import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { collection, serverTimestamp } from "firebase/firestore";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 
-const initialState: FeedbackState = {
-  message: "",
-  status: "idle",
-};
+
+const feedbackSchema = z.object({
+  feedback: z.string().min(10, { message: "Feedback must be at least 10 characters." }),
+});
 
 export default function FeedbackPage() {
-  const currentUser = users.lecturer;
+  const { user } = useUser();
+  const firestore = useFirestore();
   const { toast } = useToast();
-  const [state, formAction] = useActionState(submitFeedback, initialState);
-  const { reset } = useForm();
+  
+  const form = useForm<z.infer<typeof feedbackSchema>>({
+    resolver: zodResolver(feedbackSchema),
+    defaultValues: {
+      feedback: "",
+    },
+  });
 
-  useEffect(() => {
-    if (state.status === 'success') {
-      toast({
-        title: "Feedback Submitted",
-        description: state.message,
-      });
-      reset();
-    } else if (state.status === 'error') {
+  const onSubmit = async (values: z.infer<typeof feedbackSchema>) => {
+    if (!user || !firestore) {
       toast({
         title: "Error",
-        description: state.message,
+        description: "You must be logged in to submit feedback.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const feedbackRef = collection(firestore, "feedback");
+      await addDocumentNonBlocking(feedbackRef, {
+        userId: user.uid,
+        message: values.feedback,
+        timestamp: serverTimestamp(),
+      });
+
+      toast({
+        title: "Feedback Submitted",
+        description: "Thank you for your feedback!",
+      });
+      form.reset();
+    } catch (error) {
+       toast({
+        title: "Error",
+        description: "There was an error submitting your feedback.",
         variant: "destructive",
       });
     }
-  }, [state, toast, reset]);
+  };
+
 
   return (
     <>
-      <DashboardHeader title="Report an Issue" user={currentUser} />
+      <DashboardHeader title="Report an Issue" />
       <main className="p-4 sm:p-6 flex justify-center">
         <Card className="w-full max-w-2xl">
           <CardHeader>
@@ -50,18 +77,30 @@ export default function FeedbackPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form action={formAction} className="space-y-4">
-              <Textarea
-                name="feedback"
-                placeholder="Please describe the issue in detail..."
-                className="min-h-[150px]"
-                required
-              />
-              <Button type="submit">
-                <Send className="mr-2 h-4 w-4" />
-                Submit Feedback
-              </Button>
-            </form>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                 <FormField
+                  control={form.control}
+                  name="feedback"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Please describe the issue in detail..."
+                          className="min-h-[150px]"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" disabled={form.formState.isSubmitting}>
+                  <Send className="mr-2 h-4 w-4" />
+                  Submit Feedback
+                </Button>
+              </form>
+            </Form>
           </CardContent>
         </Card>
       </main>

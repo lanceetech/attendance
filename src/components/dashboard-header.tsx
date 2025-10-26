@@ -12,17 +12,27 @@ import {
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
-import type { User } from "@/lib/data";
 import { SidebarTrigger } from "./ui/sidebar";
+import { useUserProfile } from "@/hooks/use-user-profile";
+import { useAuth } from "@/firebase";
+import { signOut } from "firebase/auth";
+import { Skeleton } from "./ui/skeleton";
 
 type DashboardHeaderProps = {
   title: string;
-  user: User;
 };
 
-export function DashboardHeader({ title, user }: DashboardHeaderProps) {
+export function DashboardHeader({ title }: DashboardHeaderProps) {
   const router = useRouter();
-  const avatarImage = PlaceHolderImages.find(img => img.id === user.avatar);
+  const auth = useAuth();
+  const { profile, isLoading } = useUserProfile();
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.push("/");
+  };
+  
+  const avatarImage = PlaceHolderImages.find(img => img.id === profile?.avatar);
 
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">
@@ -35,20 +45,32 @@ export function DashboardHeader({ title, user }: DashboardHeaderProps) {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button className="flex items-center gap-3 rounded-full focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
-            <div className="text-right hidden sm:block">
-              <p className="font-semibold text-sm">{user.name}</p>
-              <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
-            </div>
-            <Avatar className="h-9 w-9">
-              {avatarImage && <AvatarImage src={avatarImage.imageUrl} alt={user.name} />}
-              <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-            </Avatar>
+            {isLoading || !profile ? (
+                <>
+                  <div className="text-right hidden sm:block">
+                     <Skeleton className="h-4 w-24 mb-1"/>
+                     <Skeleton className="h-3 w-16"/>
+                  </div>
+                  <Skeleton className="h-9 w-9 rounded-full" />
+                </>
+            ) : (
+              <>
+                <div className="text-right hidden sm:block">
+                  <p className="font-semibold text-sm">{profile.name}</p>
+                  <p className="text-xs text-muted-foreground capitalize">{profile.role}</p>
+                </div>
+                <Avatar className="h-9 w-9">
+                  {avatarImage && <AvatarImage src={avatarImage.imageUrl} alt={profile.name || ""} />}
+                  <AvatarFallback>{profile.name?.charAt(0)}</AvatarFallback>
+                </Avatar>
+              </>
+            )}
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
           <DropdownMenuLabel>My Account</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => router.push("/")}>
+          <DropdownMenuItem onClick={handleLogout}>
             <LogOut className="mr-2 h-4 w-4" />
             <span>Log out</span>
           </DropdownMenuItem>

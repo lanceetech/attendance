@@ -1,7 +1,8 @@
+
 "use client";
 
+import { useMemo } from "react";
 import { DashboardHeader } from "@/components/dashboard-header";
-import { users, courseUnits } from "@/lib/data";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Table,
@@ -14,14 +15,25 @@ import {
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Edit } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useCollection, useFirestore } from "@/firebase";
+import { collection } from "firebase/firestore";
+import { CourseUnit } from "@/lib/data";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ManageSchedulePage() {
-  const currentUser = users.admin;
   const isMobile = useIsMobile();
+  const firestore = useFirestore();
+
+  const courseUnitsQuery = useMemo(() => {
+    if (!firestore) return null;
+    return collection(firestore, "courseUnits");
+  }, [firestore]);
+
+  const { data: courseUnits, isLoading } = useCollection<CourseUnit>(courseUnitsQuery);
 
   return (
     <>
-      <DashboardHeader title="Manage Schedule" user={currentUser} />
+      <DashboardHeader title="Manage Schedule" />
       <main className="p-4 sm:p-6">
         <Card>
           <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -37,9 +49,15 @@ export default function ManageSchedulePage() {
             </Button>
           </CardHeader>
           <CardContent>
-            {isMobile ? (
+            {isLoading ? (
               <div className="space-y-4">
-                {courseUnits.map((unit) => (
+                {[...Array(5)].map((_, i) => (
+                  <Skeleton key={i} className="h-24 w-full" />
+                ))}
+              </div>
+            ) : isMobile ? (
+              <div className="space-y-4">
+                {courseUnits?.map((unit) => (
                   <div key={unit.id} className="rounded-lg border bg-card text-card-foreground shadow-sm p-4">
                     <div className="flex justify-between items-start">
                         <div>
@@ -71,7 +89,7 @@ export default function ManageSchedulePage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {courseUnits.map((unit) => (
+                    {courseUnits?.map((unit) => (
                       <TableRow key={unit.id}>
                         <TableCell className="font-medium">{unit.code}</TableCell>
                         <TableCell>{unit.name}</TableCell>

@@ -18,11 +18,13 @@ import {
 } from "@/components/ui/accordion";
 import type { TimetableEntry } from "@/lib/data";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Skeleton } from "./ui/skeleton";
 
 type TimetableProps = {
   schedule: TimetableEntry[];
   title: string;
   description: string;
+  isLoading: boolean;
 };
 
 const daysOfWeek: TimetableEntry['day'][] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
@@ -32,8 +34,26 @@ const timeSlots = Array.from({ length: 6 }, (_, i) => {
   return `${String(startTime).padStart(2, '0')}:00 - ${String(startTime + 2).padStart(2, '0')}:00`;
 });
 
-export default function Timetable({ schedule, title, description }: TimetableProps) {
+export default function Timetable({ schedule, title, description, isLoading }: TimetableProps) {
   const isMobile = useIsMobile();
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-8 w-3/4" />
+          <Skeleton className="h-4 w-1/2" />
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {[...Array(5)].map((_, i) => (
+              <Skeleton key={i} className="h-20 w-full" />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (isMobile) {
     return (

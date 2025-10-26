@@ -27,7 +27,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Image from 'next/image';
 import { QrCode, Users } from 'lucide-react';
 import { useCollection, useFirestore } from '@/firebase';
@@ -52,13 +51,12 @@ export default function AttendancePage() {
   const firestore = useFirestore();
   const [selectedClassId, setSelectedClassId] = useState < string | null > (null);
   const [isQrVisible, setIsQrVisible] = useState(false);
-  const qrCodeImage = PlaceHolderImages.find((img) => img.id === 'qr_code');
 
   const timetableQuery = useMemo(() => {
     if (!firestore || !profile) return null;
     return query(
       collection(firestore, 'lecturerTimetable'),
-      where('lecturerName', '==', profile.name)
+      where('lecturerId', '==', profile.uid)
     );
   }, [firestore, profile]);
 
@@ -86,7 +84,7 @@ export default function AttendancePage() {
 
   const generatedQrCodeUrl = () => {
     const classDetails = getSelectedClassDetails();
-    if (!classDetails) return qrCodeImage?.imageUrl;
+    if (!classDetails) return 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=ClassSync';
 
     // The data includes the class ID for the student to write their attendance record to.
     const data = `class-sync-attendance::${classDetails.id}`;
@@ -223,16 +221,14 @@ export default function AttendancePage() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex items-center justify-center p-4">
-            {generatedQrCodeUrl() && (
-              <Image
-                src={generatedQrCodeUrl() !}
-                alt="Attendance QR Code"
-                width={200}
-                height={200}
-                data-ai-hint={qrCodeImage?.imageHint || 'qr code'}
-                className="rounded-lg"
-              />
-            )}
+            <Image
+              src={generatedQrCodeUrl()}
+              alt="Attendance QR Code"
+              width={200}
+              height={200}
+              data-ai-hint={'qr code'}
+              className="rounded-lg"
+            />
           </div>
           <p className="text-sm text-muted-foreground">
             Students can scan this code to mark their attendance.

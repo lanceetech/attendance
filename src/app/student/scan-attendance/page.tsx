@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { DashboardHeader } from '@/components/dashboard-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,22 +25,42 @@ export default function ScanAttendancePage() {
   const [processing, setProcessing] = useState(false);
   const animationFrameId = useRef<number>();
 
-
-  useEffect(() => {
-    if (isScanning) {
-      startScan();
-    } else {
-      stopScan();
+  const scanFrame = useCallback(() => {
+    if (!isScanning || !videoRef.current || videoRef.current.paused || videoRef.current.ended) {
+      return;
     }
-
-    return () => {
-      stopScan();
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  
+    const video = videoRef.current;
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+      animationFrameId.current = requestAnimationFrame(scanFrame);
+      return;
+    }
+  
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const context = canvas.getContext('2d');
+    
+    if (context) {
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: "dontInvert",
+      });
+  
+      if (code) {
+        handleScanResult(code.data);
+      }
+    }
+    
+    animationFrameId.current = requestAnimationFrame(scanFrame);
   }, [isScanning]);
 
 
   const startScan = async () => {
+    setIsScanning(true);
+    setHasCameraPermission(null);
+
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
@@ -48,7 +68,6 @@ export default function ScanAttendancePage() {
           videoRef.current.srcObject = stream;
         }
         setHasCameraPermission(true);
-        scanFrame();
       } catch (error) {
         console.error('Error accessing camera:', error);
         setHasCameraPermission(false);
@@ -63,9 +82,7 @@ export default function ScanAttendancePage() {
   };
 
   const stopScan = () => {
-    if (animationFrameId.current) {
-      cancelAnimationFrame(animationFrameId.current);
-    }
+    setIsScanning(false);
     if (videoRef.current && videoRef.current.srcObject) {
       const stream = videoRef.current.srcObject as MediaStream;
       stream.getTracks().forEach(track => track.stop());
@@ -73,45 +90,24 @@ export default function ScanAttendancePage() {
     }
   };
 
-  const scanFrame = () => {
-    if (!videoRef.current || videoRef.current.paused || videoRef.current.ended) {
+  useEffect(() => {
+    if (isScanning && hasCameraPermission) {
       animationFrameId.current = requestAnimationFrame(scanFrame);
-      return;
-    }
-  
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    if (!context) {
-      animationFrameId.current = requestAnimationFrame(scanFrame);
-      return;
-    }
-  
-    const videoWidth = videoRef.current.videoWidth;
-    const videoHeight = videoRef.current.videoHeight;
-  
-    if (videoWidth === 0 || videoHeight === 0) {
-      animationFrameId.current = requestAnimationFrame(scanFrame);
-      return;
-    }
-  
-    canvas.width = videoWidth;
-    canvas.height = videoHeight;
-    context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-    
-    const code = jsQR(imageData.data, imageData.width, imageData.height, {
-      inversionAttempts: "dontInvert",
-    });
-
-    if (code) {
-      handleScanResult(code.data);
     } else {
-      animationFrameId.current = requestAnimationFrame(scanFrame);
+      if (animationFrameId.current) {
+        cancelAnimationFrame(animationFrameId.current);
+      }
     }
-  };
+
+    return () => {
+      if (animationFrameId.current) {
+        cancelAnimationFrame(animationFrameId.current);
+      }
+    };
+  }, [isScanning, hasCameraPermission, scanFrame]);
 
   const handleScanResult = async (data: string) => {
-    setIsScanning(false);
+    stopScan();
     setProcessing(true);
 
     if (!data.startsWith('class-sync-attendance::')) {
@@ -171,6 +167,15 @@ export default function ScanAttendancePage() {
     }
   };
 
+  const handleButtonClick = () => {
+    if (isScanning) {
+      stopScan();
+    } else {
+      startScan();
+    }
+  };
+
+
   return (
     <>
       <DashboardHeader title="Scan Attendance" />
@@ -184,9 +189,8 @@ export default function ScanAttendancePage() {
           </CardHeader>
           <CardContent className="space-y-4">
              <div className="aspect-video bg-muted rounded-md flex items-center justify-center overflow-hidden">
-                {isScanning ? (
-                    <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
-                ) : (
+                <video ref={videoRef} className={`w-full h-full object-cover ${!isScanning && 'hidden'}`} autoPlay playsInline muted onCanPlay={() => scanFrame()} />
+                {!isScanning && (
                     <div className="text-center text-muted-foreground p-4">
                         <Camera className="h-12 w-12 mx-auto" />
                         <p>Camera is off. Click below to start scanning.</p>
@@ -205,7 +209,7 @@ export default function ScanAttendancePage() {
              )}
 
              <Button 
-                onClick={() => setIsScanning(prev => !prev)} 
+                onClick={handleButtonClick}
                 className="w-full"
                 disabled={hasCameraPermission === false || processing}
              >

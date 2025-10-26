@@ -41,17 +41,21 @@ export default function LoginForm() {
       return;
     }
 
-    // Do not await here. Let the onAuthStateChanged listener handle the redirect.
+    // Non-blocking call. The onAuthStateChanged listener will handle redirects.
     signInWithEmailAndPassword(auth, values.email, values.password)
     .then(() => {
         router.push('/dashboard');
     })
     .catch((error: any) => {
         console.error('Authentication failed:', error);
+        let description = 'Could not sign in. Please check your credentials.';
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+          description = 'Invalid email or password. Please try again.';
+        }
         toast({
             variant: 'destructive',
             title: 'Authentication Failed',
-            description: error.message || 'Could not sign in. Please check your credentials.',
+            description,
         });
     });
   };

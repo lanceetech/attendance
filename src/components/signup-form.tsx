@@ -73,11 +73,19 @@ export default function SignupForm() {
       }
     } catch (error: any) {
       console.error('Sign-up failed:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Sign-up Failed',
-        description: error.message || 'Could not create your account. Please try again.',
-      });
+      if (error.code === 'auth/email-already-in-use') {
+        toast({
+          variant: 'destructive',
+          title: 'Sign-up Failed',
+          description: 'This email address is already in use. Please sign in or use a different email.',
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Sign-up Failed',
+          description: error.message || 'Could not create your account. Please try again.',
+        });
+      }
     }
   };
 

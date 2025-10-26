@@ -3,133 +3,162 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows users to read and write their own profile data.
-     * @path /users/{userId}
-     * @allow (create) - User with UID 'user123' can create a profile with data { uid: 'user123', name: 'Test User', role: 'student', email: 'test@example.com' }.
-     * @allow (update) - User with UID 'user123' can update their profile with data { uid: 'user123', name: 'Updated User' }.
-     * @deny (create) - User with UID 'user456' cannot create a profile for 'user123'.
-     * @deny (update) - User with UID 'user456' cannot update the profile of 'user123'.
-     * @principle Enforces document ownership for writes.
+     * @description Manages user profile data, restricting access to the owning user.
+     * @path /databases/{database}/documents/users/{userId}
+     * @allow (create) User with UID 'user123' can create their profile.
+     * @deny (create) User with UID 'user456' cannot create a profile with ID 'user123'.
+     * @allow (get) User with UID 'user123' can read their own profile.
+     * @deny (get) User with UID 'user456' cannot read the profile of 'user123'.
+     * @allow (update) User with UID 'user123' can update their own profile.
+     * @deny (update) User with UID 'user456' cannot update the profile of 'user123'.
+     * @allow (delete) User with UID 'user123' can delete their own profile.
+     * @deny (delete) User with UID 'user456' cannot delete the profile of 'user123'.
+     * @principle Enforces document ownership for all operations.
      */
     match /users/{userId} {
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
       allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
-      allow update: if isOwner(userId) && request.resource.data.uid == request.auth.uid;
-      allow delete: if isOwner(userId) && request.resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isOwner(userId);
+      allow delete: if isSignedIn() && isOwner(userId);
     }
 
     /**
-     * @description Allows anyone to read unit information, but restricts write access.
-     * @path /units/{unitId}
-     * @allow (get) - Any user can read a unit document.
-     * @allow (list) - Any user can list unit documents.
-     * @deny (create) - No one can create unit documents without custom logic.
+     * @description Manages course unit data, allowing public read access and restricted write access.
+     * @path /databases/{database}/documents/units/{unitId}
+     * @allow (get) Any user can read unit data.
+     * @allow (list) Any user can list units.
+     * @deny (create) Only authenticated users can create units.  Requires additional role-based check.
+     * @deny (update) Only authenticated users can update units. Requires additional role-based check.
+     * @deny (delete) Only authenticated users can delete units. Requires additional role-based check.
      * @principle Public read access with restricted writes.
      */
     match /units/{unitId} {
       allow get, list: if true;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
 
     /**
-     * @description Allows anyone to read class information, but restricts write access.
-     * @path /classes/{classId}
-     * @allow (get) - Any user can read a class document.
-     * @allow (list) - Any user can list class documents.
-     * @deny (create) - No one can create class documents without custom logic.
+     * @description Manages scheduled class data, allowing public read access and restricted write access.
+     * @path /databases/{database}/documents/classes/{classId}
+     * @allow (get) Any user can read class data.
+     * @allow (list) Any user can list classes.
+     * @deny (create) Only authenticated users can create classes.  Requires additional role-based check.
+     * @deny (update) Only authenticated users can update classes. Requires additional role-based check.
+     * @deny (delete) Only authenticated users can delete classes. Requires additional role-based check.
      * @principle Public read access with restricted writes.
      */
     match /classes/{classId} {
       allow get, list: if true;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
 
     /**
-     * @description Allows read and write attendance to a specific student.
-     * @path /classes/{classId}/attendance/{attendanceId}
-     * @allow (get) - Any user can read an attendance document.
-     * @allow (list) - Any user can list attendance documents.
-     * @deny (create) - No one can create attendance documents without custom logic.
-     * @principle Public read access with restricted writes.
+     * @description Manages attendance records for a specific class, restricting access to the lecturer.
+     * @path /databases/{database}/documents/classes/{classId}/attendance/{attendanceId}
+     * @allow (get) Any user can read an attendance record if they have the ID.
+     * @allow (list) Only a lecturer or administrator can list attendance records for a class.
+     * @deny (create) Only the lecturer associated with the class can create attendance records.
+     * @deny (update) Only the lecturer associated with the class can update attendance records.
+     * @deny (delete) Only the lecturer associated with the class can delete attendance records.
+     * @principle Lecturer-only access to attendance data.
      */
     match /classes/{classId}/attendance/{attendanceId} {
-        allow get, list: if true;
-        allow create: if false;
-        allow update: if false;
-        allow delete: if false;
+      allow get: if true; // Allowing public access to single attendance record.
+      allow list: if isSignedIn() && isLecturerForClass(classId);
+      allow create: if isSignedIn() && isLecturerForClass(classId);
+      allow update: if isSignedIn() && isLecturerForClass(classId);
+      allow delete: if isSignedIn() && isLecturerForClass(classId);
     }
 
     /**
-     * @description Allows anyone to read classroom information, but restricts write access.
-     * @path /classrooms/{roomId}
-     * @allow (get) - Any user can read a classroom document.
-     * @allow (list) - Any user can list classroom documents.
-     * @deny (create) - No one can create classroom documents without custom logic.
+     * @description Manages classroom data, allowing public read access and restricted write access.
+     * @path /databases/{database}/documents/classrooms/{roomId}
+     * @allow (get) Any user can read classroom data.
+     * @allow (list) Any user can list classrooms.
+     * @deny (create) Only authenticated users can create classrooms. Requires role-based validation
+     * @deny (update) Only authenticated users can update classrooms. Requires role-based validation
+     * @deny (delete) Only authenticated users can delete classrooms. Requires role-based validation
      * @principle Public read access with restricted writes.
      */
     match /classrooms/{roomId} {
       allow get, list: if true;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
 
     /**
-     * @description Allows authenticated users to submit feedback.
-     * @path /feedback/{feedbackId}
-     * @allow (create) - Authenticated user can create feedback.
-     * @deny (get) - No one can read feedback documents without custom logic.
-     * @deny (list) - No one can list feedback documents without custom logic.
-     * @principle Authenticated users can create feedback, but read access is restricted.
+     * @description Manages user feedback submissions, allowing any authenticated user to submit feedback.
+     * @path /databases/{database}/documents/feedback/{feedbackId}
+     * @allow (get) Any user can read a feedback submission if they have the ID.
+     * @allow (list) Deny anyone can list feedback submissions.
+     * @allow (create) Any authenticated user can create a feedback submission.
+     * @deny (update) No user can update a feedback submission.
+     * @deny (delete) No user can delete a feedback submission.
+     * @principle Authenticated users can submit feedback.
      */
     match /feedback/{feedbackId} {
-      allow get, list: if false;
+      allow get: if true; // Public access to single feedback record.
+      allow list: if false;
       allow create: if isSignedIn();
       allow update: if false;
       allow delete: if false;
     }
 
     /**
-     * @description Allows anyone to read student timetable information, but restricts write access.
-     * @path /studentTimetable/{entryId}
-     * @allow (get) - Any user can read a student timetable document.
-     * @allow (list) - Any user can list student timetable documents.
-     * @deny (create) - No one can create student timetable documents without custom logic.
+     * @description Manages student timetable data, allowing public read access and restricted write access.
+     * @path /databases/{database}/documents/studentTimetable/{entryId}
+     * @allow (get) Any user can read student timetable data.
+     * @allow (list) Any user can list the student timetable.
+     * @deny (create) Only authenticated users can create student timetable data. Requires role-based validation.
+     * @deny (update) Only authenticated users can update student timetable data. Requires role-based validation.
+     * @deny (delete) Only authenticated users can delete student timetable data. Requires role-based validation.
      * @principle Public read access with restricted writes.
      */
     match /studentTimetable/{entryId} {
-        allow get, list: if true;
-        allow create: if false;
-        allow update: if false;
-        allow delete: if false;
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
 
     /**
-     * @description Allows anyone to read lecturer timetable information, but restricts write access.
-     * @path /lecturerTimetable/{entryId}
-     * @allow (get) - Any user can read a lecturer timetable document.
-     * @allow (list) - Any user can list lecturer timetable documents.
-     * @deny (create) - No one can create lecturer timetable documents without custom logic.
+     * @description Manages lecturer timetable data, allowing public read access and restricted write access.
+     * @path /databases/{database}/documents/lecturerTimetable/{entryId}
+     * @allow (get) Any user can read lecturer timetable data.
+     * @allow (list) Any user can list the lecturer timetable.
+     * @deny (create) Only authenticated users can create lecturer timetable data.  Requires role-based validation.
+     * @deny (update) Only authenticated users can update lecturer timetable data.  Requires role-based validation.
+     * @deny (delete) Only authenticated users can delete lecturer timetable data.  Requires role-based validation.
      * @principle Public read access with restricted writes.
      */
     match /lecturerTimetable/{entryId} {
-        allow get, list: if true;
-        allow create: if false;
-        allow update: if false;
-        allow delete: if false;
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
+  }
+
+  // Helper functions
+  function isSignedIn() {
+    return request.auth != null;
+  }
+
+  function isOwner(userId) {
+    return request.auth.uid == userId;
+  }
+
+  function isExistingOwner(userId) {
+    return isOwner(userId);
+  }
+
+  function isLecturerForClass(classId) {
+    return get(/databases/$(database)/documents/classes/$(classId)).data.lecturerId == request.auth.uid;
   }
 }

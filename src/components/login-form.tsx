@@ -31,7 +31,7 @@ export default function LoginForm() {
     },
   });
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const onSubmit = (values: z.infer<typeof formSchema>) => {
     if (!auth) {
       toast({
         variant: 'destructive',
@@ -41,17 +41,19 @@ export default function LoginForm() {
       return;
     }
 
-    try {
-      await signInWithEmailAndPassword(auth, values.email, values.password);
-      router.push('/dashboard');
-    } catch (error: any) {
-      console.error('Authentication failed:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Authentication Failed',
-        description: error.message || 'Could not sign in. Please check your credentials.',
-      });
-    }
+    // Do not await here. Let the onAuthStateChanged listener handle the redirect.
+    signInWithEmailAndPassword(auth, values.email, values.password)
+    .then(() => {
+        router.push('/dashboard');
+    })
+    .catch((error: any) => {
+        console.error('Authentication failed:', error);
+        toast({
+            variant: 'destructive',
+            title: 'Authentication Failed',
+            description: error.message || 'Could not sign in. Please check your credentials.',
+        });
+    });
   };
 
   return (

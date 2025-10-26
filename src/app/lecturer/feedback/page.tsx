@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -32,7 +31,7 @@ export default function FeedbackPage() {
     },
   });
 
-  const onSubmit = async (values: z.infer<typeof feedbackSchema>) => {
+  const onSubmit = (values: z.infer<typeof feedbackSchema>) => {
     if (!user || !firestore) {
       toast({
         title: "Error",
@@ -42,26 +41,18 @@ export default function FeedbackPage() {
       return;
     }
 
-    try {
-      const feedbackRef = collection(firestore, "feedback");
-      await addDocumentNonBlocking(feedbackRef, {
-        userId: user.uid,
-        message: values.feedback,
-        timestamp: serverTimestamp(),
-      });
-
-      toast({
-        title: "Feedback Submitted",
-        description: "Thank you for your feedback!",
-      });
-      form.reset();
-    } catch (error) {
-       toast({
-        title: "Error",
-        description: "There was an error submitting your feedback.",
-        variant: "destructive",
-      });
-    }
+    const feedbackRef = collection(firestore, "feedback");
+    addDocumentNonBlocking(feedbackRef, {
+      userId: user.uid,
+      message: values.feedback,
+      timestamp: serverTimestamp(),
+    }).then(() => {
+        toast({
+            title: "Feedback Submitted",
+            description: "Thank you for your feedback!",
+        });
+        form.reset();
+    });
   };
 
 

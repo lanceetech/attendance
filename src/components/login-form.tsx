@@ -9,10 +9,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { useAuth, useFirestore } from '@/firebase';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import Link from 'next/link';
 import { Separator } from './ui/separator';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { doc } from 'firebase/firestore';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
@@ -22,6 +25,7 @@ const formSchema = z.object({
 export default function LoginForm() {
   const router = useRouter();
   const auth = useAuth();
+  const firestore = useFirestore();
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -63,12 +67,10 @@ export default function LoginForm() {
   };
 
   const handleAdminLogin = () => {
-    // For demo purposes, we are using a hardcoded admin account.
-    // In a production app, you would have a secure way to manage admin users.
     const adminEmail = 'admin@classsync.app';
-    const adminPassword = 'password123'; // This should be a secure, environment-managed password
+    const adminPassword = 'password123';
 
-    if (!auth) {
+    if (!auth || !firestore) {
       toast({
         variant: 'destructive',
         title: 'Firebase not initialized',
@@ -82,13 +84,30 @@ export default function LoginForm() {
         router.push('/dashboard');
       })
       .catch((error) => {
-         // This might happen if the admin user doesn't exist yet.
          if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-             toast({
-                variant: 'destructive',
-                title: 'Admin Account Not Found',
-                description: 'The pre-configured administrator account does not exist.',
-            });
+            // If admin doesn't exist, create it
+            createUserWithEmailAndPassword(auth, adminEmail, adminPassword)
+                .then(userCredential => {
+                    const user = userCredential.user;
+                    const adminAvatar = PlaceHolderImages.find(img => img.id === 'admin_avatar');
+                    const profileData = {
+                        uid: user.uid,
+                        name: 'Admin User',
+                        email: adminEmail,
+                        role: 'admin',
+                        avatar: adminAvatar?.id
+                    };
+                    const userDocRef = doc(firestore, 'users', user.uid);
+                    setDocumentNonBlocking(userDocRef, profileData, { merge: true });
+                    router.push('/dashboard');
+                })
+                .catch(createError => {
+                     toast({
+                        variant: 'destructive',
+                        title: 'Admin Setup Failed',
+                        description: 'Could not create the administrator account.',
+                    });
+                })
          } else {
             toast({
                 variant: 'destructive',

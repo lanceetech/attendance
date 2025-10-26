@@ -1,0 +1,399 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user within the ClassSync system.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user entity."
+        },
+        "username": {
+          "type": "string",
+          "description": "The username of the user."
+        },
+        "role": {
+          "type": "string",
+          "description": "The role of the user (e.g., Admin, Lecturer, Student)."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the user.",
+          "format": "email"
+        }
+      },
+      "required": [
+        "id",
+        "username",
+        "role",
+        "email"
+      ]
+    },
+    "Unit": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Unit",
+      "type": "object",
+      "description": "Represents a unit of study (e.g., a course).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the unit entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the unit."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the unit."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description"
+      ]
+    },
+    "Lecturer": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Lecturer",
+      "type": "object",
+      "description": "Represents a lecturer teaching units.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the lecturer entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:1 Lecturer)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the Lecturer."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "name"
+      ]
+    },
+    "Student": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Student",
+      "type": "object",
+      "description": "Represents a student enrolled in units.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the student entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:1 Student)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the Student."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "name"
+      ]
+    },
+    "Class": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Class",
+      "type": "object",
+      "description": "Represents a scheduled class.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the class entity."
+        },
+        "unitId": {
+          "type": "string",
+          "description": "Reference to Unit. (Relationship: Unit 1:N Class)"
+        },
+        "lecturerId": {
+          "type": "string",
+          "description": "Reference to Lecturer. (Relationship: Lecturer 1:N Class)"
+        },
+        "roomId": {
+          "type": "string",
+          "description": "Reference to Room. (Relationship: Room 1:N Class)"
+        },
+        "startTime": {
+          "type": "string",
+          "description": "The start time of the class.",
+          "format": "date-time"
+        },
+        "endTime": {
+          "type": "string",
+          "description": "The end time of the class.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "unitId",
+        "lecturerId",
+        "roomId",
+        "startTime",
+        "endTime"
+      ]
+    },
+    "Room": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Room",
+      "type": "object",
+      "description": "Represents a classroom or lecture hall.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the room entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the room (e.g., 'Room 101')."
+        },
+        "capacity": {
+          "type": "number",
+          "description": "The capacity of the room."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "capacity"
+      ]
+    },
+    "Attendance": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Attendance",
+      "type": "object",
+      "description": "Represents attendance records for students in classes.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the attendance entity."
+        },
+        "studentId": {
+          "type": "string",
+          "description": "Reference to Student. (Relationship: Student 1:N Attendance)"
+        },
+        "classId": {
+          "type": "string",
+          "description": "Reference to Class. (Relationship: Class 1:N Attendance)"
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The timestamp of the attendance record.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The attendance status (e.g., Present, Absent, Late)."
+        }
+      },
+      "required": [
+        "id",
+        "studentId",
+        "classId",
+        "timestamp",
+        "status"
+      ]
+    },
+    "Feedback": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Feedback",
+      "type": "object",
+      "description": "Represents feedback submitted by users regarding timetables.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the feedback entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Feedback)"
+        },
+        "message": {
+          "type": "string",
+          "description": "The feedback message."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The timestamp of the feedback submission.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "message",
+        "timestamp"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profile information. Path-based ownership ensures that only the user can access their own profile.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/units/{unitId}",
+        "definition": {
+          "entityName": "Unit",
+          "schema": {
+            "$ref": "#/backend/entities/Unit"
+          },
+          "description": "Stores unit information.",
+          "params": [
+            {
+              "name": "unitId",
+              "description": "The unique identifier of the unit."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/lecturers/{lecturerId}",
+        "definition": {
+          "entityName": "Lecturer",
+          "schema": {
+            "$ref": "#/backend/entities/Lecturer"
+          },
+          "description": "Stores lecturer information.",
+          "params": [
+            {
+              "name": "lecturerId",
+              "description": "The unique identifier of the lecturer."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/students/{studentId}",
+        "definition": {
+          "entityName": "Student",
+          "schema": {
+            "$ref": "#/backend/entities/Student"
+          },
+          "description": "Stores student information.",
+          "params": [
+            {
+              "name": "studentId",
+              "description": "The unique identifier of the student."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/classes/{classId}",
+        "definition": {
+          "entityName": "Class",
+          "schema": {
+            "$ref": "#/backend/entities/Class"
+          },
+          "description": "Stores class information.",
+          "params": [
+            {
+              "name": "classId",
+              "description": "The unique identifier of the class."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/rooms/{roomId}",
+        "definition": {
+          "entityName": "Room",
+          "schema": {
+            "$ref": "#/backend/entities/Room"
+          },
+          "description": "Stores room information.",
+          "params": [
+            {
+              "name": "roomId",
+              "description": "The unique identifier of the room."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/attendances/{attendanceId}",
+        "definition": {
+          "entityName": "Attendance",
+          "schema": {
+            "$ref": "#/backend/entities/Attendance"
+          },
+          "description": "Stores attendance records.",
+          "params": [
+            {
+              "name": "attendanceId",
+              "description": "The unique identifier of the attendance record."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/feedback/{feedbackId}",
+        "definition": {
+          "entityName": "Feedback",
+          "schema": {
+            "$ref": "#/backend/entities/Feedback"
+          },
+          "description": "Stores user feedback.",
+          "params": [
+            {
+              "name": "feedbackId",
+              "description": "The unique identifier of the feedback record."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_admin/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Documents in this collection indicate admin privileges. Existence of a document indicates admin role.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to ensure security, scalability, and ease of debugging, following the principles of Authorization Independence, Clarity of Intent, DBAC (Database Authenticated Control - No Custom Claims), and QAPs (Rules are not Filters). It leverages denormalization for authorization and structural segregation to simplify security rules.\n\n1.  **Authorization Independence:**\n    *   **Membership Map:** Collaborative data (e.g., unit access) uses a membership map (`members: {uid: role}`) stored directly within the unit document. This eliminates the need for `get()` calls in security rules to check user roles, enabling atomic operations.\n\n2.  **Structural Segregation:**\n    *   Entities are segregated based on their security requirements.\n    *   User-specific data (e.g., profile information) is stored under `/users/{userId}`.\n\n3.  **Access Modeling:**\n    *   **Ownership:** Private data is structured using path-based ownership (`/users/{userId}/...`).\n    *   **Collaboration:** Collaborative data access controlled via membership maps.\n    *   **Admin Roles:** Existence-based global roles using dedicated collections (e.g., `/roles_admin/{uid}`).\n\n4.  **Data Clarity and Predictability:**\n    *   Explicit state modeling is encouraged (though not explicitly used in this initial design). If, for example, Units could be in different states (e.g. Draft, Published, Archived), a `status` field on the Unit object would be preferable to inferring state from other fields.\n\nQAPs Support:\n\n*   Secure List Operations: Segregation of data by access level ensures that list operations can be securely performed using simple rules that check user roles or membership maps.\n*   By denormalizing authorization data (membership maps) we guarantee that list operations are secure, since no `get()` calls are needed to authorize."
+  }
+}

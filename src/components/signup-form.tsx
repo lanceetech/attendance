@@ -12,8 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useFirestore } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc } from 'firebase/firestore';
-import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { doc, setDoc } from 'firebase/firestore';
 import Link from 'next/link';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
@@ -67,7 +66,7 @@ export default function SignupForm() {
           avatar: values.role === 'student' ? studentAvatar?.id : lecturerAvatar?.id
         };
 
-        setDocumentNonBlocking(userDocRef, profileData, { merge: true });
+        await setDoc(userDocRef, profileData, { merge: true });
         
         router.push('/onboarding');
       }

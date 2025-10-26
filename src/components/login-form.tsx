@@ -13,8 +13,7 @@ import { useAuth, useFirestore } from '@/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import Link from 'next/link';
 import { Separator } from './ui/separator';
-import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { doc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const formSchema = z.object({
@@ -66,7 +65,7 @@ export default function LoginForm() {
     });
   };
 
-  const handleAdminLogin = () => {
+  const handleAdminLogin = async () => {
     const adminEmail = 'admin@classsync.app';
     const adminPassword = 'password123';
 
@@ -79,43 +78,40 @@ export default function LoginForm() {
       return;
     }
 
-    signInWithEmailAndPassword(auth, adminEmail, adminPassword)
-      .then(() => {
-        router.push('/dashboard');
-      })
-      .catch((error) => {
-         if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-            // If admin doesn't exist, create it
-            createUserWithEmailAndPassword(auth, adminEmail, adminPassword)
-                .then(userCredential => {
-                    const user = userCredential.user;
-                    const adminAvatar = PlaceHolderImages.find(img => img.id === 'admin_avatar');
-                    const profileData = {
-                        uid: user.uid,
-                        name: 'Admin User',
-                        email: adminEmail,
-                        role: 'admin',
-                        avatar: adminAvatar?.id
-                    };
-                    const userDocRef = doc(firestore, 'users', user.uid);
-                    setDocumentNonBlocking(userDocRef, profileData, { merge: true });
-                    router.push('/dashboard');
-                })
-                .catch(createError => {
-                     toast({
-                        variant: 'destructive',
-                        title: 'Admin Setup Failed',
-                        description: 'Could not create the administrator account.',
-                    });
-                })
-         } else {
-            toast({
-                variant: 'destructive',
-                title: 'Admin Login Failed',
-                description: 'Could not sign in as administrator.',
-            });
-         }
-      });
+    try {
+      await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
+      router.push('/dashboard');
+    } catch (error: any) {
+       if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+          try {
+            const userCredential = await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
+            const user = userCredential.user;
+            const adminAvatar = PlaceHolderImages.find(img => img.id === 'admin_avatar');
+            const profileData = {
+                uid: user.uid,
+                name: 'Admin User',
+                email: adminEmail,
+                role: 'admin' as const,
+                avatar: adminAvatar?.id
+            };
+            const userDocRef = doc(firestore, 'users', user.uid);
+            await setDoc(userDocRef, profileData, { merge: true });
+            router.push('/dashboard');
+          } catch (createError: any) {
+               toast({
+                  variant: 'destructive',
+                  title: 'Admin Setup Failed',
+                  description: 'Could not create the administrator account.',
+              });
+          }
+       } else {
+          toast({
+              variant: 'destructive',
+              title: 'Admin Login Failed',
+              description: 'Could not sign in as administrator.',
+          });
+       }
+    }
   };
 
   return (

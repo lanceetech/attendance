@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -23,6 +24,7 @@ import {
   LogOut,
   QrCode,
   HardHat,
+  Camera,
 } from "lucide-react";
 import Logo from "./logo";
 import { Button } from "./ui/button";
@@ -44,7 +46,8 @@ const menuItems = {
   ],
   student: [
     { href: "/student", label: "My Timetable", icon: Calendar },
-    { href: "/student/feedback", label: "Report Issue", icon: Send },
+    { href: "/student/scan-attendance", label: "Scan Attendance", icon: Camera },
+    { href: "/student/feedback", label = "Report Issue", icon: Send },
   ],
 };
 

@@ -30,7 +30,7 @@
             "description": "A reference to an image placeholder ID."
         }
       },
-      "required": ["uid", "name", "role"]
+      "required": ["uid", "name", "role", "email"]
     },
     "Unit": {
       "$schema": "http://json-schema.org/draft-07/schema#",

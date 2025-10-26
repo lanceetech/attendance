@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import Link from 'next/link';
+import { Separator } from './ui/separator';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
@@ -41,11 +42,9 @@ export default function LoginForm() {
       return;
     }
 
-    // Non-blocking call. The onAuthStateChanged listener will handle redirects.
     signInWithEmailAndPassword(auth, values.email, values.password)
     .then((userCredential) => {
-        // The redirect is handled by the dashboard page based on the auth state.
-        // No need to push the router here.
+        router.push('/dashboard');
     })
     .catch((error: any) => {
         console.error('Authentication failed:', error);
@@ -61,6 +60,43 @@ export default function LoginForm() {
             description,
         });
     });
+  };
+
+  const handleAdminLogin = () => {
+    // For demo purposes, we are using a hardcoded admin account.
+    // In a production app, you would have a secure way to manage admin users.
+    const adminEmail = 'admin@classsync.app';
+    const adminPassword = 'password123'; // This should be a secure, environment-managed password
+
+    if (!auth) {
+      toast({
+        variant: 'destructive',
+        title: 'Firebase not initialized',
+        description: 'Please try again in a moment.',
+      });
+      return;
+    }
+
+    signInWithEmailAndPassword(auth, adminEmail, adminPassword)
+      .then(() => {
+        router.push('/dashboard');
+      })
+      .catch((error) => {
+         // This might happen if the admin user doesn't exist yet.
+         if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+             toast({
+                variant: 'destructive',
+                title: 'Admin Account Not Found',
+                description: 'The pre-configured administrator account does not exist.',
+            });
+         } else {
+            toast({
+                variant: 'destructive',
+                title: 'Admin Login Failed',
+                description: 'Could not sign in as administrator.',
+            });
+         }
+      });
   };
 
   return (
@@ -110,6 +146,10 @@ export default function LoginForm() {
       </div>
        <Button variant="outline" className="w-full" asChild>
         <Link href="/signup">Create an Account</Link>
+      </Button>
+      <Separator className="my-4" />
+      <Button variant="secondary" className="w-full" onClick={handleAdminLogin}>
+        Sign In as Administrator
       </Button>
     </div>
   );

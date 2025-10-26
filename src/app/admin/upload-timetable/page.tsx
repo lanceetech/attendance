@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { FileUp, Loader2 } from 'lucide-react';
 import { useFirestore } from '@/firebase';
-import { collection, writeBatch, Timestamp } from 'firebase/firestore';
+import { collection, writeBatch, Timestamp, doc } from 'firebase/firestore';
 
 const exampleCsv = `unitId,lecturerId,lecturerName,roomId,day,time,unitCode,unitName,room,studentIds
 unit-001,lec-001,Dr. Alan Grant,room-001,Monday,08:00 - 10:00,CS101,Introduction to Computer Science,Room 101,student-001;student-002
@@ -88,11 +88,11 @@ export default function UploadTimetablePage() {
 
             // Add to main classes collection
             const classRef = collection(firestore, 'classes');
-            batch.set(classRef.doc(), classData);
+            batch.set(doc(classRef), classData);
 
             // Add to lecturer's timetable
             const lecturerTimetableRef = collection(firestore, 'lecturerTimetable');
-            batch.set(lecturerTimetableRef.doc(), classData);
+            batch.set(doc(lecturerTimetableRef), classData);
             
             // Add to each student's timetable
             const studentIds = (row.studentIds || '').split(';').filter(Boolean);
@@ -100,7 +100,7 @@ export default function UploadTimetablePage() {
                 const studentTimetableRef = collection(firestore, 'studentTimetable');
                 // In a real scenario with user-specific timetables, you might add this to a user's subcollection.
                 // For this demo, we add a general entry.
-                batch.set(studentTimetableRef.doc(), { ...classData, studentIds });
+                batch.set(doc(studentTimetableRef), { ...classData, studentIds });
             }
           }
           

@@ -17,7 +17,7 @@ import { PlusCircle, Edit } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useCollection, useFirestore } from "@/firebase";
 import { collection } from "firebase/firestore";
-import { CourseUnit } from "@/lib/data";
+import { Unit } from "@/lib/data-contracts";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ManageSchedulePage() {
@@ -26,10 +26,10 @@ export default function ManageSchedulePage() {
 
   const courseUnitsQuery = useMemo(() => {
     if (!firestore) return null;
-    return collection(firestore, "courseUnits");
+    return collection(firestore, "units");
   }, [firestore]);
 
-  const { data: courseUnits, isLoading } = useCollection<CourseUnit>(courseUnitsQuery);
+  const { data: courseUnits, isLoading } = useCollection<Unit>(courseUnitsQuery);
 
   return (
     <>
@@ -69,10 +69,6 @@ export default function ManageSchedulePage() {
                             <span className="sr-only">Edit</span>
                         </Button>
                     </div>
-                    <div className="mt-4 text-sm text-muted-foreground">
-                        <p><strong>Lecturer:</strong> {unit.lecturer}</p>
-                        <p><strong>Schedule:</strong> {`Year ${unit.year}, Sem ${unit.semester}`}</p>
-                    </div>
                   </div>
                 ))}
               </div>
@@ -83,8 +79,7 @@ export default function ManageSchedulePage() {
                     <TableRow>
                       <TableHead>Unit Code</TableHead>
                       <TableHead>Unit Name</TableHead>
-                      <TableHead>Assigned Lecturer</TableHead>
-                      <TableHead>Year/Semester</TableHead>
+                      <TableHead>Description</TableHead>
                       <TableHead><span className="sr-only">Actions</span></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -93,8 +88,7 @@ export default function ManageSchedulePage() {
                       <TableRow key={unit.id}>
                         <TableCell className="font-medium">{unit.code}</TableCell>
                         <TableCell>{unit.name}</TableCell>
-                        <TableCell>{unit.lecturer}</TableCell>
-                        <TableCell>{`Year ${unit.year}, Sem ${unit.semester}`}</TableCell>
+                        <TableCell>{unit.description}</TableCell>
                         <TableCell className="text-right">
                           <Button variant="outline" size="sm">Edit</Button>
                         </TableCell>

@@ -32,7 +32,7 @@ import Image from 'next/image';
 import { QrCode, Users } from 'lucide-react';
 import { useCollection, useFirestore } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
-import { TimetableEntry, AttendanceRecord } from '@/lib/data';
+import { Class as TimetableEntry, AttendanceRecord } from '@/lib/data-contracts';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import {
   Table,
@@ -58,7 +58,7 @@ export default function AttendancePage() {
     if (!firestore || !profile) return null;
     return query(
       collection(firestore, 'lecturerTimetable'),
-      where('lecturer', '==', profile.name)
+      where('lecturerName', '==', profile.name)
     );
   }, [firestore, profile]);
 

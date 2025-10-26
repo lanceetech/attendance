@@ -16,7 +16,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import type { TimetableEntry } from "@/lib/data";
+import type { Class as TimetableEntry } from "@/lib/data-contracts";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Skeleton } from "./ui/skeleton";
 
@@ -74,7 +74,7 @@ export default function Timetable({ schedule, title, description, isLoading }: T
                         <div key={entry.id} className="p-2 rounded-lg bg-secondary/50 border border-secondary">
                            <p className="font-bold text-primary">{entry.time}</p>
                            <p className="font-semibold text-foreground">{entry.unitCode}: {entry.unitName}</p>
-                           <p className="text-sm text-muted-foreground">{entry.lecturer}</p>
+                           <p className="text-sm text-muted-foreground">{entry.lecturerName}</p>
                            <p className="text-sm text-muted-foreground mt-1">Room: {entry.room}</p>
                         </div>
                       ))
@@ -126,7 +126,7 @@ export default function Timetable({ schedule, title, description, isLoading }: T
                             <div className="p-2 rounded-lg bg-secondary/50 border border-secondary">
                               <p className="font-bold text-primary">{entry.unitCode}</p>
                               <p className="text-sm font-medium text-foreground">{entry.unitName}</p>
-                              <p className="text-xs text-muted-foreground">{entry.lecturer}</p>
+                              <p className="text-xs text-muted-foreground">{entry.lecturerName}</p>
                               <p className="text-xs text-muted-foreground mt-1">Room: {entry.room}</p>
                             </div>
                           ) : null}

@@ -6,9 +6,9 @@ import { DashboardHeader } from "@/components/dashboard-header";
 import Timetable from "@/components/timetable";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
-import { useCollection, useFirestore, useUser } from "@/firebase";
-import { collection, query, where } from "firebase/firestore";
-import { TimetableEntry } from "@/lib/data";
+import { useCollection, useFirestore } from "@/firebase";
+import { collection } from "firebase/firestore";
+import { Class as TimetableEntry } from "@/lib/data-contracts";
 import { useUserProfile } from "@/hooks/use-user-profile";
 
 export default function StudentDashboard() {

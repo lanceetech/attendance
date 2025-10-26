@@ -4,19 +4,17 @@
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { User, Shield, GraduationCap } from "lucide-react";
-import { useAuth } from "@/firebase";
+import { useAuth, useFirestore } from "@/firebase";
 import { signInWithCustomToken } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
-import { useFirestore }from "@/firebase";
-import { users } from "@/lib/data";
 
 
 // In a real app, you'd get these tokens from a secure backend after a login process.
-// For this demo, we'll use mock custom tokens.
+// For this demo, we'll use mock custom tokens that the emulator will accept.
 const mockCustomTokens = {
-    admin: 'eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJhdWQiOiJodHRwczovL2lkZW50aXR5dG9vbGtpdC5nb29nbGVhcGlzLmNvbS9nb29nbGUuaWRlbnRpdHkuaWRlbnRpdHl0b29sa2l0LnYxLklkZW50aXR5VG9vbGtpdCIsImlhdCI6MTcwMDAwMDAwMCwiZXhwIjoyMDAwMDAwMDAwLCJ1aWQiOiJhZG1pbl91c2VyIiwicm9sZSI6ImFkbWluIn0.',
-    lecturer: 'eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJhdWQiOiJodHRwczovL2lkZW50aXR5dG9vbGtpdC5nb29nbGVhcGlzLmNvbS9nb29nbGUuaWRlbnRpdHkuaWRlbnRpdHl0b29sa2l0LnYxLklkZW50aXR5VG9vbGtpdCIsImlhdCI6MTcwMDAwMDAwMCwiZXhwIjoyMDAwMDAwMDAwLCJ1aWQiOiJsZWN0dXJlcl91c2VyIiwicm9sZSI6ImxlY3R1cmVyIn0.',
-    student: 'eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJhdWQiOiJodHRwczovL2lkZW50aXR5dG9vbGtpdC5nb29nbGVhcGlzLmNvbS9nb29nbGUuaWRlbnRpdHkuaWRlbnRpdHl0b29sa2l0LnYxLklkZW50aXR5VG9vbGtpdCIsImlhdCI6MTcwMDAwMDAwMCwiZXhwIjoyMDAwMDAwMDAwLCJ1aWQiOiJzdHVkZW50X3VzZXIiLCJyb2xlIjoic3R1ZGVudCJ9.'
+    admin: '{"uid": "admin_user"}',
+    lecturer: '{"uid": "lecturer_user"}',
+    student: '{"uid": "student_user"}'
 }
 
 const userProfiles = {
@@ -43,7 +41,7 @@ export default function LoginForm() {
         await setDoc(userDocRef, userProfiles[role], { merge: true });
       }
 
-      router.push(`/${role}`);
+      router.push('/dashboard');
     } catch (error) {
       console.error("Custom sign-in failed:", error);
     }

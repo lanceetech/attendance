@@ -12,6 +12,7 @@ import { doc, collection, serverTimestamp, getDoc } from 'firebase/firestore';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import jsQR from 'jsqr';
 
 export default function ScanAttendancePage() {
   const { user } = useUser();
@@ -19,10 +20,10 @@ export default function ScanAttendancePage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [scanResult, setScanResult] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [processing, setProcessing] = useState(false);
+  const animationFrameId = useRef<number>();
 
 
   useEffect(() => {
@@ -32,12 +33,14 @@ export default function ScanAttendancePage() {
       stopScan();
     }
 
-    return () => stopScan();
+    return () => {
+      stopScan();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isScanning]);
 
 
   const startScan = async () => {
-    setScanResult(null);
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
@@ -60,6 +63,9 @@ export default function ScanAttendancePage() {
   };
 
   const stopScan = () => {
+    if (animationFrameId.current) {
+      cancelAnimationFrame(animationFrameId.current);
+    }
     if (videoRef.current && videoRef.current.srcObject) {
       const stream = videoRef.current.srcObject as MediaStream;
       stream.getTracks().forEach(track => track.stop());
@@ -68,17 +74,23 @@ export default function ScanAttendancePage() {
   };
 
   const scanFrame = () => {
-    if (!isScanning || !videoRef.current || videoRef.current.paused || videoRef.current.ended) return;
+    if (!videoRef.current || videoRef.current.paused || videoRef.current.ended) {
+      animationFrameId.current = requestAnimationFrame(scanFrame);
+      return;
+    }
   
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d');
-    if (!context) return;
+    if (!context) {
+      animationFrameId.current = requestAnimationFrame(scanFrame);
+      return;
+    }
   
     const videoWidth = videoRef.current.videoWidth;
     const videoHeight = videoRef.current.videoHeight;
   
     if (videoWidth === 0 || videoHeight === 0) {
-      requestAnimationFrame(scanFrame);
+      animationFrameId.current = requestAnimationFrame(scanFrame);
       return;
     }
   
@@ -86,24 +98,20 @@ export default function ScanAttendancePage() {
     canvas.height = videoHeight;
     context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-  
-    import('jsqr').then((jsQRModule) => {
-      const jsQR = jsQRModule.default;
-      const code = jsQR(imageData.data, imageData.width, imageData.height, {
-        inversionAttempts: "dontInvert",
-      });
-  
-      if (code) {
-        handleScanResult(code.data);
-      } else if (isScanning) {
-        requestAnimationFrame(scanFrame);
-      }
+    
+    const code = jsQR(imageData.data, imageData.width, imageData.height, {
+      inversionAttempts: "dontInvert",
     });
+
+    if (code) {
+      handleScanResult(code.data);
+    } else {
+      animationFrameId.current = requestAnimationFrame(scanFrame);
+    }
   };
 
   const handleScanResult = async (data: string) => {
     setIsScanning(false);
-    setScanResult(data);
     setProcessing(true);
 
     if (!data.startsWith('class-sync-attendance::')) {

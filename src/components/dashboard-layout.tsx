@@ -28,6 +28,8 @@ import {
 } from "lucide-react";
 import Logo from "./logo";
 import { Button } from "./ui/button";
+import { useAuth } from "@/firebase";
+import { signOut } from "firebase/auth";
 
 type Role = "admin" | "lecturer" | "student";
 
@@ -47,7 +49,7 @@ const menuItems = {
   student: [
     { href: "/student", label: "My Timetable", icon: Calendar },
     { href: "/student/scan-attendance", label: "Scan Attendance", icon: Camera },
-    { href: "/student/feedback", label = "Report Issue", icon: Send },
+    { href: "/student/feedback", label: "Report Issue", icon: Send },
   ],
 };
 
@@ -62,7 +64,14 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const auth = useAuth();
   const currentMenuItems = menuItems[role];
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.push("/");
+  };
+
 
   return (
     <SidebarProvider>
@@ -70,7 +79,7 @@ export default function DashboardLayout({
         <Sidebar collapsible={collapsible}>
           <SidebarHeader>
             <div className="flex items-center gap-2">
-              <Logo className="h-8 w-8 text-primary" />
+              <Logo className="h-8 w-8" />
               <span className="text-xl font-headline font-semibold">ClassSync</span>
             </div>
           </SidebarHeader>
@@ -92,7 +101,7 @@ export default function DashboardLayout({
             </SidebarMenu>
           </SidebarContent>
           <SidebarFooter>
-            <Button variant="ghost" className="w-full justify-start gap-2" onClick={() => router.push("/")}>
+            <Button variant="ghost" className="w-full justify-start gap-2" onClick={handleLogout}>
               <LogOut />
               <span>Logout</span>
             </Button>

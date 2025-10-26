@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { useCollection, useFirestore, useUser } from "@/firebase";
 import { collection, query, where } from "firebase/firestore";
-import { TimetableEntry } from "@/lib/data";
+import { Class as TimetableEntry } from "@/lib/data-contracts";
 import { useUserProfile } from "@/hooks/use-user-profile";
 
 export default function LecturerDashboard() {
@@ -17,11 +17,9 @@ export default function LecturerDashboard() {
 
   const timetableQuery = useMemo(() => {
     if (!firestore || !profile) return null;
-    // In a real app, this would be more robust.
-    // Here we filter by lecturer name which might not be unique.
     return query(
       collection(firestore, "lecturerTimetable"),
-      where("lecturer", "==", profile.name)
+      where("lecturerName", "==", profile.name)
     );
   }, [firestore, profile]);
 

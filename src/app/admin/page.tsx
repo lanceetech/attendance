@@ -14,11 +14,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function AdminDashboard() {
   const firestore = useFirestore();
 
-  const courseUnitsQuery = useMemo(() => {
+  const unitsQuery = useMemo(() => {
     if (!firestore) return null;
-    return collection(firestore, 'courseUnits');
+    return collection(firestore, 'units');
   }, [firestore]);
-  const { data: courseUnits, isLoading: loadingUnits } = useCollection(courseUnitsQuery);
+  const { data: courseUnits, isLoading: loadingUnits } = useCollection(unitsQuery);
   
   const classroomsQuery = useMemo(() => {
     if (!firestore) return null;

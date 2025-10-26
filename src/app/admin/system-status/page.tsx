@@ -1,7 +1,8 @@
+'use client';
 import { DashboardHeader } from "@/components/dashboard-header";
-import { users } from "@/lib/data";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { CheckCircle, AlertTriangle, Clock } from "lucide-react";
+import { useState, useEffect } from "react";
 
 const services = [
   { name: "Authentication Service", status: "Operational", icon: CheckCircle, color: "text-green-500" },
@@ -12,11 +13,18 @@ const services = [
 ];
 
 export default function SystemStatusPage() {
-  const currentUser = users.admin;
+  const [lastChecked, setLastChecked] = useState(new Date().toLocaleTimeString());
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLastChecked(new Date().toLocaleTimeString());
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <>
-      <DashboardHeader title="System Status" user={currentUser} />
+      <DashboardHeader title="System Status" />
       <main className="p-4 sm:p-6">
         <Card>
           <CardHeader>
@@ -38,7 +46,7 @@ export default function SystemStatusPage() {
               </div>
             ))}
              <div className="mt-4 text-center text-sm text-muted-foreground">
-                <p>Last checked: {new Date().toLocaleTimeString()}</p>
+                <p>Last checked: {lastChecked}</p>
             </div>
           </CardContent>
         </Card>

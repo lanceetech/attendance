@@ -1,8 +1,9 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import LoginForm from '@/components/login-form';
+import SignupForm from '@/components/signup-form';
 import Logo from '@/components/logo';
 
-export default function Home() {
+export default function SignupPage() {
   return (
     <main className="flex flex-col items-center justify-center min-h-screen p-4 bg-background">
       <div className="flex flex-col items-center gap-4 mb-6 text-center">
@@ -14,13 +15,13 @@ export default function Home() {
           <p className="text-muted-foreground">Fostering Knowledge and Innovation</p>
         </div>
       </div>
-      <Card className="w-full max-w-sm">
+      <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-headline">ClassSync</CardTitle>
-          <CardDescription>Sign in to access your dashboard</CardDescription>
+          <CardTitle className="text-2xl font-headline">Create an Account</CardTitle>
+          <CardDescription>Join ClassSync to manage your academic life.</CardDescription>
         </CardHeader>
         <CardContent>
-          <LoginForm />
+          <SignupForm />
         </CardContent>
       </Card>
       <footer className="mt-8 text-sm text-muted-foreground">
@@ -29,3 +30,4 @@ export default function Home() {
     </main>
   );
 }
+

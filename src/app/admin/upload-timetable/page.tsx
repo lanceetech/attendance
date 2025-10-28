@@ -16,7 +16,6 @@ import mockClassrooms from '../../../../docs/mock-classrooms.json';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-
 const exampleCsv = `unitCode,unitName,lecturerName,room,day,time,studentEmails
 CS101,Introduction to Computer Science,Dr. Alan Grant,Room 101,Monday,08:00 - 10:00,student1@example.com;student2@example.com
 MAT203,Advanced Calculus,Dr. Ian Malcolm,Room 102,Tuesday,10:00 - 12:00,student1@example.com;student3@example.com
@@ -283,5 +282,3 @@ export default function UploadTimetablePage() {
     </>
   );
 }
-
-    

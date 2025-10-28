@@ -47,7 +47,8 @@ export default function LoginForm() {
 
     signInWithEmailAndPassword(auth, values.email, values.password)
     .then((userCredential) => {
-        router.push('/dashboard');
+        // Successful sign-in is handled by the global onAuthStateChanged listener.
+        // The dashboard page will handle the redirect. No need to push here.
     })
     .catch((error: any) => {
         console.error('Authentication failed:', error);

@@ -1,168 +1,177 @@
 /**
- * @fileoverview Firestore Security Rules for ClassSync.
- *
- * Core Philosophy:
- * This ruleset enforces a role-based access control model with an admin role and owner-based restrictions where appropriate.
+ * @file Firestore Security Rules
+ * @description This ruleset enforces a role-based access control model with some owner-based restrictions.
  *
  * Data Structure:
- * - /users/{userId}: Stores user profiles, with the document ID matching the Firebase Auth UID.
+ * - /users/{userId}: Stores user profiles, with the document ID being the user's UID.
  * - /units/{unitId}: Stores information about course units.
- * - /classes/{classId}: Stores details about scheduled class sessions.
- * - /classes/{classId}/attendance/{attendanceId}: Stores attendance records for specific classes.
+ * - /classes/{classId}: Stores scheduled class sessions.
+ * - /classes/{classId}/attendance/{attendanceId}: Subcollection for attendance records.
  * - /classrooms/{roomId}: Stores information about classrooms.
  * - /feedback/{feedbackId}: Stores user feedback.
- * - /studentTimetable/{entryId}, /lecturerTimetable/{entryId}: Denormalized timetable data.
+ * - /studentTimetable/{entryId}: Stores timetable entries for students.
+ * - /lecturerTimetable/{entryId}: Stores timetable entries for lecturers.
  *
  * Key Security Decisions:
- * - Users can only read their own profile data.
- * - Only admins can create, update, or delete units, classes, and classrooms.
- * - Attendance records can only be created by admins.
- * - Feedback can be created by any signed-in user, but only admins can read or delete it.
- * - Timetable entries are publicly readable, but only admins can modify them.
- *
- * Denormalization for Authorization:
- * - The `lecturerId` field in the `/classes/{classId}` document is used to quickly check if a user is authorized to modify a class.
+ * - User listing is denied.
+ * - Only authenticated users can submit feedback.
+ * - Timetable data for students and lecturers is publicly readable.
+ * - There is no data validation in place in this prototype version.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows users to read their own profile data and admins to manage all user data.
+     * @description Secure user profiles. Only the user themselves can read/write their profile.
      * @path /users/{userId}
-     * @allow (get, list) if isSignedIn() && isOwner(userId)
-     * @allow (create, update, delete) if isSignedIn() && isAdmin()
-     * @deny (create, update, delete) if !isSignedIn() || !isOwner(userId)
-     * @principle Enforces document ownership for reads and admin-only writes.
+     * @allow (create) - User with UID 'user123' can create their own profile document at /users/user123.
+     * @allow (get) - User with UID 'user123' can read their own profile document at /users/user123.
+     * @allow (update) - User with UID 'user123' can update their own profile document at /users/user123.
+     * @allow (delete) - User with UID 'user123' can delete their own profile document at /users/user123.
+     * @deny (create) - User with UID 'user456' cannot create a profile document at /users/user123.
+     * @deny (get) - User with UID 'user456' cannot read the profile document at /users/user123.
+     * @deny (update) - User with UID 'user456' cannot update the profile document at /users/user123.
+     * @deny (delete) - User with UID 'user456' cannot delete the profile document at /users/user123.
+     * @principle Enforces document ownership for all operations.
      */
     match /users/{userId} {
-      allow get, list: if isSignedIn() && isOwner(userId);
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isOwner(userId) && request.auth.uid == userId; //Force user to only be able to update their own userId
-      allow delete: if false;
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Allows admins to manage course units.
+     * @description Secure course units.
      * @path /units/{unitId}
-     * @allow (get, list) if true;
-     * @allow (create, update, delete) if isSignedIn() && isAdmin()
-     * @deny (create, update, delete) if !isSignedIn() || !isAdmin()
-     * @principle Restricts write access to admins only.
+     * @allow (get) - Any user can read a unit.
+     * @allow (list) - Any user can list units.
+     * @allow (create) - No one can create a unit.
+     * @allow (update) - No one can update a unit.
+     * @allow (delete) - No one can delete a unit.
+     * @deny (create) - An unauthenticated user cannot create a unit.
+     * @deny (update) - An unauthenticated user cannot update a unit.
+     * @deny (delete) - An unauthenticated user cannot delete a unit.
+     * @principle Public read, no writes allowed.
      */
     match /units/{unitId} {
       allow get, list: if true;
-      allow create: if isSignedIn() && isAdmin();
-      allow update: if isSignedIn() && isAdmin();
-      allow delete: if isSignedIn() && isAdmin();
+      allow create, update, delete: if false;
     }
 
     /**
-     * @description Allows admins to manage class schedules.
+     * @description Secure scheduled class sessions.
      * @path /classes/{classId}
-     * @allow (get, list) if true;
-     * @allow create: if isSignedIn() && isAdmin();
-     * @allow update: if isSignedIn() && isAdmin();
-     * @allow delete: if isSignedIn() && isAdmin();
-     * @deny (create, update, delete) if !isSignedIn() || !isAdmin()
-     * @principle Restricts write access to admins only.
+     * @allow (get) - Any user can read a class session.
+     * @allow (list) - Any user can list class sessions.
+     * @allow (create) - No one can create a class session.
+     * @allow (update) - No one can update a class session.
+     * @allow (delete) - No one can delete a class session.
+     * @deny (create) - An unauthenticated user cannot create a class.
+     * @deny (update) - An unauthenticated user cannot update a class.
+     * @deny (delete) - An unauthenticated user cannot delete a class.
+     * @principle Public read, no writes allowed.
      */
     match /classes/{classId} {
       allow get, list: if true;
-      allow create: if isSignedIn() && isAdmin();
-      allow update: if isSignedIn() && isAdmin();
-      allow delete: if isSignedIn() && isAdmin();
+      allow create, update, delete: if false;
     }
 
     /**
-     * @description Allows admins to manage attendance records for a specific class.
+     * @description Secure attendance records for a specific class.
      * @path /classes/{classId}/attendance/{attendanceId}
-     * @allow (get, list) if isSignedIn() && isAdmin()
-     * @allow create: if isSignedIn() && isAdmin()
-     * @allow update: if isSignedIn() && isAdmin()
-     * @allow delete: if isSignedIn() && isAdmin()
-     * @deny (create, update, delete) if !isSignedIn() || !isAdmin()
-     * @principle Restricts access to attendance records to admins only.
+     * @allow (get) - Any user can read an attendance record.
+     * @allow (list) - Any user can list attendance records.
+     * @allow (create) - No one can create an attendance record.
+     * @allow (update) - No one can update an attendance record.
+     * @allow (delete) - No one can delete an attendance record.
+     * @deny (create) - An unauthenticated user cannot create an attendance record.
+     * @deny (update) - An unauthenticated user cannot update an attendance record.
+     * @deny (delete) - An unauthenticated user cannot delete an attendance record.
+     * @principle Public read, no writes allowed.
      */
     match /classes/{classId}/attendance/{attendanceId} {
-      allow get, list: if isSignedIn() && isAdmin();
-      allow create: if isSignedIn() && isAdmin();
-      allow update: if isSignedIn() && isAdmin();
-      allow delete: if isSignedIn() && isAdmin();
+      allow get, list: if true;
+      allow create, update, delete: if false;
     }
 
     /**
-     * @description Allows admins to manage classroom data.
+     * @description Secure classrooms.
      * @path /classrooms/{roomId}
-     * @allow (get, list) if true;
-     * @allow create: if isSignedIn() && isAdmin();
-     * @allow update: if isSignedIn() && isAdmin();
-     * @allow delete: if isSignedIn() && isAdmin();
-     * @deny (create, update, delete) if !isSignedIn() || !isAdmin()
-     * @principle Restricts write access to admins only.
+     * @allow (get) - Any user can read a classroom.
+     * @allow (list) - Any user can list classrooms.
+     * @allow (create) - No one can create a classroom.
+     * @allow (update) - No one can update a classroom.
+     * @allow (delete) - No one can delete a classroom.
+     * @deny (create) - An unauthenticated user cannot create a classroom.
+     * @deny (update) - An unauthenticated user cannot update a classroom.
+     * @deny (delete) - An unauthenticated user cannot delete a classroom.
+     * @principle Public read, no writes allowed.
      */
     match /classrooms/{roomId} {
       allow get, list: if true;
-      allow create: if isSignedIn() && isAdmin();
-      allow update: if isSignedIn() && isAdmin();
-      allow delete: if isSignedIn() && isAdmin();
+      allow create, update, delete: if false;
     }
 
     /**
-     * @description Allows signed-in users to create feedback, but only admins can read or delete it.
+     * @description Secure user feedback. Only authenticated users can submit feedback.
      * @path /feedback/{feedbackId}
-     * @allow get, list: if isSignedIn() && isAdmin()
-     * @allow create: if isSignedIn()
-     * @allow update: if false;
-     * @allow delete: if isSignedIn() && isAdmin();
-     * @deny create: if !isSignedIn()
-     * @deny get, list: if !isSignedIn() || !isAdmin()
-     * @deny delete: if !isSignedIn() || !isAdmin()
-     * @principle Allows users to submit feedback, but restricts management to admins.
+     * @allow (create) - Authenticated user can create feedback.
+     * @allow (get) - Any user can read feedback.
+     * @allow (list) - Any user can list feedback.
+     * @allow (update) - No one can update feedback.
+     * @allow (delete) - No one can delete feedback.
+     * @deny (create) - An unauthenticated user cannot create feedback.
+     * @deny (update) - An unauthenticated user cannot update feedback.
+     * @deny (delete) - An unauthenticated user cannot delete feedback.
+     * @principle Authenticated users can create. Public read, no updates or deletes allowed.
      */
     match /feedback/{feedbackId} {
-      allow get, list: if isSignedIn() && isAdmin();
+      allow get, list: if true;
       allow create: if isSignedIn();
-      allow update: if false;
-      allow delete: if isSignedIn() && isAdmin();
+      allow update, delete: if false;
     }
 
     /**
-     * @description Allows anyone to read timetable data, but only admins can modify it.
+     * @description Secure student timetable data.
      * @path /studentTimetable/{entryId}
-     * @allow get, list: if true;
-     * @allow create: if isSignedIn() && isAdmin();
-     * @allow update: if isSignedIn() && isAdmin();
-     * @allow delete: if isSignedIn() && isAdmin();
-     * @deny (create, update, delete) if !isSignedIn() || !isAdmin()
-     * @principle Provides public read access with admin-only writes.
+     * @allow (get) - Any user can read student timetable.
+     * @allow (list) - Any user can list student timetable.
+     * @allow (create) - No one can create student timetable.
+     * @allow (update) - No one can update student timetable.
+     * @allow (delete) - No one can delete student timetable.
+     * @deny (create) - An unauthenticated user cannot create a student timetable.
+     * @deny (update) - An unauthenticated user cannot update a student timetable.
+     * @deny (delete) - An unauthenticated user cannot delete a student timetable.
+     * @principle Public read, no writes allowed.
      */
     match /studentTimetable/{entryId} {
       allow get, list: if true;
-      allow create: if isSignedIn() && isAdmin();
-      allow update: if isSignedIn() && isAdmin();
-      allow delete: if isSignedIn() && isAdmin();
+      allow create, update, delete: if false;
     }
 
     /**
-     * @description Allows anyone to read timetable data, but only admins can modify it.
+     * @description Secure lecturer timetable data.
      * @path /lecturerTimetable/{entryId}
-     * @allow get, list: if true;
-     * @allow create: if isSignedIn() && isAdmin();
-     * @allow update: if isSignedIn() && isAdmin();
-     * @allow delete: if isSignedIn() && isAdmin();
-     * @deny (create, update, delete) if !isSignedIn() || !isAdmin()
-     * @principle Provides public read access with admin-only writes.
+     * @allow (get) - Any user can read lecturer timetable.
+     * @allow (list) - Any user can list lecturer timetable.
+     * @allow (create) - No one can create lecturer timetable.
+     * @allow (update) - No one can update lecturer timetable.
+     * @allow (delete) - No one can delete lecturer timetable.
+     * @deny (create) - An unauthenticated user cannot create a lecturer timetable.
+     * @deny (update) - An unauthenticated user cannot update a lecturer timetable.
+     * @deny (delete) - An unauthenticated user cannot delete a lecturer timetable.
+     * @principle Public read, no writes allowed.
      */
     match /lecturerTimetable/{entryId} {
       allow get, list: if true;
-      allow create: if isSignedIn() && isAdmin();
-      allow update: if isSignedIn() && isAdmin();
-      allow delete: if isSignedIn() && isAdmin();
+      allow create, update, delete: if false;
     }
   }
 
-  // Helper functions
+  // Helper Functions
   function isSignedIn() {
     return request.auth != null;
   }
@@ -171,7 +180,7 @@ service cloud.firestore {
     return request.auth.uid == userId;
   }
 
-  function isAdmin() {
-    return isSignedIn() && request.auth.token.role == 'admin';
+  function isExistingOwner(userId) {
+    return isOwner(userId) && resource != null;
   }
 }

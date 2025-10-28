@@ -83,7 +83,7 @@ export default function DashboardLayout({
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen bg-secondary/20">
+      <div className="min-h-screen bg-background">
         <Sidebar collapsible={collapsible}>
           <SidebarHeader>
             <div className="flex items-center gap-2">

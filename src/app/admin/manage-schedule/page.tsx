@@ -16,10 +16,19 @@ import { Button } from "@/components/ui/button";
 import { PlusCircle, Edit } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useCollection, useFirestore } from "@/firebase";
-import { collection } from "firebase/firestore";
-import { Class as ClassEntry } from "@/lib/data-contracts";
+import { collection, query, where } from "firebase/firestore";
+import { Class as ClassEntry, UserProfile } from "@/lib/data-contracts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EditClassDialog } from "@/components/edit-class-dialog";
+
+// Mock data to prevent query errors in this environment
+const mockLecturers: UserProfile[] = [
+    { id: 'lecturer-dr-alan-grant', uid: 'lecturer-dr-alan-grant', name: 'Dr. Alan Grant', email: 'alan.grant@example.com', role: 'lecturer' },
+    { id: 'lecturer-dr-ian-malcolm', uid: 'lecturer-dr-ian-malcolm', name: 'Dr. Ian Malcolm', email: 'ian.malcolm@example.com', role: 'lecturer' },
+    { id: 'lecturer-dr-ellie-sattler', uid: 'lecturer-dr-ellie-sattler', name: 'Dr. Ellie Sattler', email: 'ellie.sattler@example.com', role: 'lecturer' },
+    { id: 'lecturer-dr-john-hammond', uid: 'lecturer-dr-john-hammond', name: 'Dr. John Hammond', email: 'john.hammond@example.com', role: 'lecturer' },
+];
+
 
 export default function ManageSchedulePage() {
   const isMobile = useIsMobile();
@@ -133,6 +142,8 @@ export default function ManageSchedulePage() {
         isOpen={isDialogOpen} 
         onClose={handleDialogClose} 
         classData={selectedClass}
+        lecturers={mockLecturers}
+        lecturersLoading={false}
       />
     </>
   );

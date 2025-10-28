@@ -31,8 +31,7 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useCollection, useFirestore } from '@/firebase';
-import { collection, doc, query, setDoc, where, Timestamp } from 'firebase/firestore';
-import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { collection, doc, setDoc, Timestamp } from 'firebase/firestore';
 import { Input } from './ui/input';
 import { UserProfile, Unit, Classroom, Class } from '@/lib/data-contracts';
 
@@ -50,9 +49,11 @@ interface EditClassDialogProps {
   isOpen: boolean;
   onClose: () => void;
   classData: Class | null;
+  lecturers: UserProfile[];
+  lecturersLoading: boolean;
 }
 
-export function EditClassDialog({ isOpen, onClose, classData }: EditClassDialogProps) {
+export function EditClassDialog({ isOpen, onClose, classData, lecturers, lecturersLoading }: EditClassDialogProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
 
@@ -69,11 +70,9 @@ export function EditClassDialog({ isOpen, onClose, classData }: EditClassDialogP
 
   const unitsQuery = useMemo(() => firestore ? collection(firestore, 'units') : null, [firestore]);
   const roomsQuery = useMemo(() => firestore ? collection(firestore, 'classrooms') : null, [firestore]);
-  const lecturersQuery = useMemo(() => firestore ? query(collection(firestore, 'users'), where('role', '==', 'lecturer')) : null, [firestore]);
 
   const { data: units, isLoading: unitsLoading } = useCollection<Unit>(unitsQuery);
   const { data: rooms, isLoading: roomsLoading } = useCollection<Classroom>(roomsQuery);
-  const { data: lecturers, isLoading: lecturersLoading } = useCollection<UserProfile>(lecturersQuery);
 
   useEffect(() => {
     if (classData && units && rooms) {

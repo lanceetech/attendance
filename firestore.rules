@@ -1,63 +1,71 @@
 /**
- * @fileoverview Firestore Security Rules for ClassSync application.
+ * @fileoverview Firestore Security Rules for ClassSync.
  *
  * Core Philosophy:
- * This ruleset enforces a user-ownership model for user profiles, allowing users to read their own profile data, and restricts listing all users.
- * Timetable data can be read by anyone, but only created by admins, and all data writes are validated.
+ * This ruleset prioritizes strict user ownership for user profiles and open access for other data in the application,
+ * but with authorization checks on write operations. This allows for easy prototyping and testing.
  *
  * Data Structure:
- * - /users/{userId}: Stores user profile data.
+ * - /users/{userId}: Stores public user profiles, where {userId} matches the Firebase Auth UID.
  * - /units/{unitId}: Stores information about course units.
- * - /classes/{classId}: Stores scheduled class sessions.
+ * - /classes/{classId}: Stores information about scheduled classes.
  * - /classes/{classId}/attendance/{attendanceId}: Stores attendance records for each class.
  * - /classrooms/{roomId}: Stores information about classrooms.
- * - /feedback/{feedbackId}: Stores user feedback submissions.
- * - /studentTimetable/{entryId}: Stores denormalized student timetable data.
- * - /lecturerTimetable/{entryId}: Stores denormalized lecturer timetable data.
+ * - /feedback/{feedbackId}: Stores user feedback.
+ * - /studentTimetable/{entryId}: Stores denormalized timetable data for all students for quick lookups.
+ * - /lecturerTimetable/{entryId}: Stores denormalized timetable data for lecturers for quick lookups.
  *
  * Key Security Decisions:
- * - Listing all users is explicitly denied to protect user privacy.
- * - All write operations require authentication.
- * - Timetable data (both student and lecturer) is publicly readable but only writable by authorized users (e.g., admins).
- * - No schema validation is performed beyond ownership checks and critical relational integrity.
+ * - User profiles (/users/{userId}) are only readable and writable by the owner.
+ * - Listing of users is disallowed for privacy.
+ * - All other collections allow public read access for ease of development.
+ * - Write operations on all collections require authentication.
  *
  * Denormalization for Authorization:
- *   None. Current rules do not require denormalization.
- *
- * Structural Segregation:
- *   The application uses separate collections for different types of data (users, units, classes, etc.), which helps to isolate data and simplify security rules.
+ *  - Attendance records will include the student's UID to quickly verify attendance.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows users to read their own profile data and create their own user document. Listing all users is denied.
-     * @path /databases/{database}/documents/users/{userId}
-     * @allow (get) User with matching UID can read their own profile.
-     * @allow (create) User with matching UID can create their own profile.
-     * @deny (list) No one can list all users.
-     * @deny (update) User cannot update another user's profile.
-     * @deny (delete) User cannot delete another user's profile.
-     * @principle Enforces document ownership for reads and writes; Prevents unauthorized listing of users.
+     * @description Controls access to user profile data.
+     * @path /users/{userId}
+     * @allow (create) - If the user is creating their own profile (auth UID matches userId).
+     * @allow (get, update, delete) - If the user is the owner of the profile (auth UID matches userId) and the document exists.
+     * @deny (list) - Listing users is not permitted.
+     * @deny (create) - If the user is trying to create a profile for another user.
+     * @deny (update, delete) - If the user is not the owner of the profile or the document does not exist.
+     * @principle Enforces document ownership for user profiles.
      */
     match /users/{userId} {
-      allow get: if isSignedIn() && isOwner(userId);
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+      function isExistingOwner(userId) {
+          return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.uid == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.uid == resource.data.uid;
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Allows anyone to read unit information. Only authenticated users can create, update, or delete units.
-     * @path /databases/{database}/documents/units/{unitId}
-     * @allow (get, list) Anyone can read and list units.
-     * @allow (create, update, delete) Authenticated users can create, update and delete units.
-     * @deny (create) Unauthenticated users cannot create units.
-     * @principle Allows public read access with authenticated writes.
+     * @description Controls access to course unit data.
+     * @path /units/{unitId}
+     * @allow (get, list) - Public read access.
+     * @allow (create, update, delete) - Only authenticated users can create, update, or delete units.
+     * @deny (create, update, delete) - If the user is not authenticated.
+     * @principle Allows public read access but requires authentication for writes.
      */
     match /units/{unitId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
       allow get, list: if true;
       allow create: if isSignedIn();
       allow update: if isSignedIn() && resource != null;
@@ -65,14 +73,18 @@ service cloud.firestore {
     }
 
     /**
-     * @description Allows anyone to read class information. Only authenticated users can create, update, or delete classes.
-     * @path /databases/{database}/documents/classes/{classId}
-     * @allow (get, list) Anyone can read and list classes.
-     * @allow (create, update, delete) Authenticated users can create, update and delete classes.
-     * @deny (create) Unauthenticated users cannot create classes.
-     * @principle Allows public read access with authenticated writes.
+     * @description Controls access to scheduled class session data.
+     * @path /classes/{classId}
+     * @allow (get, list) - Public read access.
+     * @allow (create, update, delete) - Only authenticated users can create, update, or delete classes.
+     * @deny (create, update, delete) - If the user is not authenticated.
+     * @principle Allows public read access but requires authentication for writes.
      */
     match /classes/{classId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
       allow get, list: if true;
       allow create: if isSignedIn();
       allow update: if isSignedIn() && resource != null;
@@ -80,59 +92,75 @@ service cloud.firestore {
     }
 
     /**
-     * @description Allows anyone to read classroom information. Only authenticated users can create, update, or delete classrooms.
-     * @path /databases/{database}/documents/classrooms/{roomId}
-     * @allow (get, list) Anyone can read and list classrooms.
-     * @allow (create, update, delete) Authenticated users can create, update and delete classrooms.
-     * @deny (create) Unauthenticated users cannot create classrooms.
-     * @principle Allows public read access with authenticated writes.
-     */
-    match /classrooms/{roomId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
-    }
-
-    /**
-     * @description Allows anyone to read feedback. Only authenticated users can create, update, or delete feedback.
-     * @path /databases/{database}/documents/feedback/{feedbackId}
-     * @allow (get, list) Anyone can read and list feedback.
-     * @allow (create, update, delete) Authenticated users can create, update and delete feedback.
-     * @deny (create) Unauthenticated users cannot create feedback.
-     * @principle Allows public read access with authenticated writes.
-     */
-    match /feedback/{feedbackId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
-    }
-
-    /**
-     * @description Allows anyone to read attendance records. Only authenticated users can create, update, or delete attendance records.
-     * @path /databases/{database}/documents/classes/{classId}/attendance/{attendanceId}
-     * @allow (get, list) Anyone can read and list attendance records.
-     * @allow (create, update, delete) Authenticated users can create, update and delete attendance records.
-     * @deny (create) Unauthenticated users cannot create attendance records.
-     * @principle Allows public read access with authenticated writes.
+     * @description Controls access to attendance records for a specific class.
+     * @path /classes/{classId}/attendance/{attendanceId}
+     * @allow (get, list) - Public read access.
+     * @allow (create, update, delete) - Only authenticated users can create, update, or delete attendance records.
+     * @deny (create, update, delete) - If the user is not authenticated.
+     * @principle Allows public read access but requires authentication for writes.
      */
     match /classes/{classId}/attendance/{attendanceId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
       allow get, list: if true;
       allow create: if isSignedIn();
       allow update: if isSignedIn() && resource != null;
       allow delete: if isSignedIn() && resource != null;
     }
-    
+
     /**
-     * @description Allows anyone to read student timetable data. Only authenticated users can create, update, or delete timetable entries.
-     * @path /databases/{database}/documents/studentTimetable/{entryId}
-     * @allow (get, list) Anyone can read and list student timetable entries.
-     * @allow (create, update, delete) Authenticated users can create, update and delete student timetable entries.
-     * @deny (create) Unauthenticated users cannot create student timetable entries.
-     * @principle Allows public read access with authenticated writes.
+     * @description Controls access to classroom data.
+     * @path /classrooms/{roomId}
+     * @allow (get, list) - Public read access.
+     * @allow (create, update, delete) - Only authenticated users can create, update, or delete classrooms.
+     * @deny (create, update, delete) - If the user is not authenticated.
+     * @principle Allows public read access but requires authentication for writes.
+     */
+    match /classrooms/{roomId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
+    }
+
+    /**
+     * @description Controls access to feedback submissions.
+     * @path /feedback/{feedbackId}
+     * @allow (get, list) - Public read access.
+     * @allow (create, update, delete) - Only authenticated users can create, update, or delete feedback.
+     * @deny (create, update, delete) - If the user is not authenticated.
+     * @principle Allows public read access but requires authentication for writes.
+     */
+    match /feedback/{feedbackId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
+    }
+
+    /**
+     * @description Controls access to student timetable data.
+     * @path /studentTimetable/{entryId}
+     * @allow (get, list) - Public read access.
+     * @allow (create, update, delete) - Only authenticated users can create, update, or delete entries.
+     * @deny (create, update, delete) - If the user is not authenticated.
+     * @principle Allows public read access but requires authentication for writes.
      */
     match /studentTimetable/{entryId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
       allow get, list: if true;
       allow create: if isSignedIn();
       allow update: if isSignedIn() && resource != null;
@@ -140,32 +168,22 @@ service cloud.firestore {
     }
 
     /**
-     * @description Allows anyone to read lecturer timetable data. Only authenticated users can create, update, or delete timetable entries.
-     * @path /databases/{database}/documents/lecturerTimetable/{entryId}
-     * @allow (get, list) Anyone can read and list lecturer timetable entries.
-     * @allow (create, update, delete) Authenticated users can create, update and delete lecturer timetable entries.
-     * @deny (create) Unauthenticated users cannot create lecturer timetable entries.
-     * @principle Allows public read access with authenticated writes.
+     * @description Controls access to lecturer timetable data.
+     * @path /lecturerTimetable/{entryId}
+     * @allow (get, list) - Public read access.
+     * @allow (create, update, delete) - Only authenticated users can create, update, or delete entries.
+     * @deny (create, update, delete) - If the user is not authenticated.
+     * @principle Allows public read access but requires authentication for writes.
      */
     match /lecturerTimetable/{entryId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
       allow get, list: if true;
       allow create: if isSignedIn();
       allow update: if isSignedIn() && resource != null;
       allow delete: if isSignedIn() && resource != null;
     }
-
-  }
-
-  // Helper functions
-  function isSignedIn() {
-    return request.auth != null;
-  }
-
-  function isOwner(userId) {
-    return request.auth.uid == userId;
-  }
-
-  function isExistingOwner(userId) {
-    return isSignedIn() && isOwner(userId) && resource != null;
   }
 }

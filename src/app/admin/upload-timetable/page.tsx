@@ -1,20 +1,20 @@
-
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Papa from 'papaparse';
 import { DashboardHeader } from '@/components/dashboard-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { FileUp, Loader2, Database } from 'lucide-react';
+import { FileUp, Loader2, Database, Upload } from 'lucide-react';
 import { useFirestore } from '@/firebase';
 import { collection, writeBatch, Timestamp, doc } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import mockUnits from '../../../../docs/mock-units.json';
 import mockClassrooms from '../../../../docs/mock-classrooms.json';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 
 const exampleCsv = `unitCode,unitName,lecturerName,room,day,time,studentEmails
@@ -24,34 +24,51 @@ PHY301,Quantum Physics,Dr. Ellie Sattler,Lab A,Wednesday,11:00 - 13:00,student2@
 ENG201,Shakespeare,Dr. John Hammond,LT-02,Monday,14:00 - 16:00,student3@example.com`;
 
 export default function UploadTimetablePage() {
-  const [csvData, setCsvData] = useState('');
+  const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
   const firestore = useFirestore();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleCsvUpload = () => {
-    if (!csvData.trim()) {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files) {
+      const selectedFile = event.target.files[0];
+      if (selectedFile && selectedFile.type === 'text/csv') {
+        setFile(selectedFile);
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Invalid File Type',
+          description: 'Please select a valid CSV file.',
+        });
+        setFile(null);
+      }
+    }
+  };
+
+  const handleFileUpload = () => {
+    if (!file) {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: 'CSV data cannot be empty.',
+        title: 'No File Selected',
+        description: 'Please select a CSV file to upload.',
       });
       return;
     }
-    processData(csvData);
+    processData(file);
   }
 
   const handleSeedData = () => {
     processData(exampleCsv, true);
   }
 
-  const processData = (csvContent: string, seedCollections = false) => {
+  const processData = (csvSource: string | File, seedCollections = false) => {
     setIsUploading(true);
 
-    Papa.parse(csvContent, {
+    const parseConfig = {
       header: true,
       skipEmptyLines: true,
-      complete: async (results) => {
+      complete: async (results: Papa.ParseResult<any>) => {
         if (results.errors.length) {
           toast({
             variant: 'destructive',
@@ -69,7 +86,7 @@ export default function UploadTimetablePage() {
         }
 
         const batch = writeBatch(firestore);
-        const allRows = results.data as any[];
+        const allRows = results.data;
         
         let writeCount = 0;
         const validRows = allRows.filter(row => row.unitCode && row.unitCode.trim() !== '');
@@ -98,7 +115,6 @@ export default function UploadTimetablePage() {
               });
             }
 
-
             for (const row of validRows) {
                 const [startHour, endHour] = row.time.split(' - ').map((t: string) => parseInt(t.split(':')[0]));
                 
@@ -113,11 +129,9 @@ export default function UploadTimetablePage() {
                 const endTime = new Date(baseDate);
                 endTime.setHours(endHour);
 
-                // A real app would have proper IDs, here we create them from names
                 const unitId = `unit-${row.unitCode.toLowerCase()}`;
                 const lecturerId = `lecturer-${row.lecturerName.replace(/\s+/g, '-').toLowerCase()}`;
                 const roomId = `room-${row.room.replace(/\s+/g, '-').toLowerCase()}`;
-
 
                 const classData = {
                   unitId: unitId,
@@ -141,7 +155,6 @@ export default function UploadTimetablePage() {
                 batch.set(lecturerTimetableRef, classData);
                 writeCount++;
                 
-                // A real app would look up student IDs from emails
                 const studentIds = (row.studentEmails || '').split(';').filter(Boolean).map((email: string) => `student-${email.split('@')[0]}`);
                 if (studentIds.length > 0) {
                     const studentTimetableRef = doc(collection(firestore, 'studentTimetable'));
@@ -156,11 +169,14 @@ export default function UploadTimetablePage() {
                 title: 'Upload Successful',
                 description: `Successfully processed ${writeCount} documents.`,
             });
-            setCsvData('');
+            setFile(null);
+            if(fileInputRef.current) {
+              fileInputRef.current.value = '';
+            }
 
         } catch (error) {
             const contextualError = new FirestorePermissionError({
-                path: 'batch write', // Path is indicative for batch operations
+                path: 'batch write',
                 operation: 'write',
                 requestResourceData: { 
                     message: `Batch write failed for ${validRows.length} documents.`,
@@ -177,7 +193,7 @@ export default function UploadTimetablePage() {
             setIsUploading(false);
         }
       },
-      error: (error) => {
+      error: (error: Error) => {
         toast({
             variant: 'destructive',
             title: 'CSV Parsing Error',
@@ -185,7 +201,8 @@ export default function UploadTimetablePage() {
         });
         setIsUploading(false);
       }
-    });
+    };
+    Papa.parse(csvSource, parseConfig);
   };
 
   return (
@@ -197,13 +214,10 @@ export default function UploadTimetablePage() {
             <CardTitle className="font-headline">Upload & Seed Data</CardTitle>
             <CardDescription>
               Use the button below to seed the entire database with mock data, including classrooms, units, and timetable entries.
-              Alternatively, paste CSV data to bulk-upload timetable entries.
-              <Button variant="link" className="p-1 h-auto" onClick={() => setCsvData(exampleCsv)}>
-                Load example timetable data
-              </Button>
+              Alternatively, upload a CSV file to bulk-upload timetable entries.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
              <div className="p-4 bg-muted/50 rounded-lg">
                 <h3 className="font-semibold text-foreground mb-2">Seed Database</h3>
                 <p className="text-sm text-muted-foreground mb-4">Click to populate Firestore with mock classrooms, course units, and timetable entries from the example data.</p>
@@ -233,32 +247,41 @@ export default function UploadTimetablePage() {
                 </div>
             </div>
 
-            <div>
-              <h3 className="font-semibold text-foreground mb-2">Upload Timetable CSV</h3>
-              <Textarea
-                placeholder="Paste CSV content here..."
-                className="min-h-[250px] font-mono text-sm"
-                value={csvData}
-                onChange={(e) => setCsvData(e.target.value)}
-                disabled={isUploading}
-              />
+            <div className="space-y-4">
+              <h3 className="font-semibold text-foreground">Upload Timetable CSV</h3>
+              <div className="grid w-full max-w-sm items-center gap-1.5">
+                <Label htmlFor="csv-file">Select CSV File</Label>
+                <Input 
+                  id="csv-file" 
+                  type="file" 
+                  accept=".csv" 
+                  onChange={handleFileChange} 
+                  ref={fileInputRef}
+                  disabled={isUploading} 
+                />
+              </div>
+               <p className="text-sm text-muted-foreground">
+                {file ? `Selected file: ${file.name}` : 'No file selected.'}
+              </p>
+              <Button onClick={handleFileUpload} disabled={isUploading || !file}>
+                {isUploading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload and Process Timetable
+                  </>
+                )}
+              </Button>
             </div>
-            <Button onClick={handleCsvUpload} disabled={isUploading}>
-              {isUploading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <FileUp className="mr-2 h-4 w-4" />
-                  Upload and Process Timetable
-                </>
-              )}
-            </Button>
           </CardContent>
         </Card>
       </main>
     </>
   );
 }
+
+    

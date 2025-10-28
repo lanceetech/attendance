@@ -63,7 +63,7 @@ export default function UploadTimetablePage() {
         Papa.parse(selectedFile, {
             preview: 1,
             complete: (results) => {
-                const headers = results.data[0] as string[];
+                const headers = (results.data[0] as string[]).filter(Boolean);
                 setCsvHeaders(headers);
                 // Attempt to auto-map headers
                 const initialMapping: Record<string, string> = {};
@@ -358,8 +358,8 @@ export default function UploadTimetablePage() {
                                         <SelectValue placeholder="Select column..." />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {csvHeaders.map(header => (
-                                            <SelectItem key={header} value={header}>{header}</SelectItem>
+                                        {csvHeaders.map((header, index) => (
+                                            <SelectItem key={`${header}-${index}`} value={header}>{header}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
@@ -395,5 +395,3 @@ export default function UploadTimetablePage() {
     </>
   );
 }
-
-    

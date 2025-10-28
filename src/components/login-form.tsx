@@ -46,8 +46,8 @@ export default function LoginForm() {
     }
 
     signInWithEmailAndPassword(auth, values.email, values.password)
-    .then(() => {
-        router.push('/admin');
+    .then((userCredential) => {
+        // The AuthProvider will handle redirection
     })
     .catch((error: any) => {
         console.error('Authentication failed:', error);
@@ -80,13 +80,15 @@ export default function LoginForm() {
 
     try {
       await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
-      router.push('/admin');
+      // AuthProvider will redirect
     } catch (error: any) {
        if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
           try {
             const userCredential = await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
             const user = userCredential.user;
             const adminAvatar = PlaceHolderImages.find(img => img.id === 'admin_avatar');
+            
+            // This is the data that will be used by a Cloud Function to set custom claims.
             const profileData = {
                 uid: user.uid,
                 name: 'Admin User',
@@ -98,9 +100,9 @@ export default function LoginForm() {
             await setDoc(userDocRef, profileData);
              toast({
                 title: 'Welcome, Administrator!',
-                description: 'We have created a default admin account for you.',
+                description: 'We have created a default admin account for you. The system will set your admin privileges shortly.',
             });
-            router.push('/admin');
+            // AuthProvider will redirect
           } catch (createError: any) {
                toast({
                   variant: 'destructive',

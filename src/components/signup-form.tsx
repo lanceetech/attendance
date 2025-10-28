@@ -58,6 +58,7 @@ export default function SignupForm() {
         const studentAvatar = PlaceHolderImages.find(img => img.id === 'student_avatar');
         const lecturerAvatar = PlaceHolderImages.find(img => img.id === 'lecturer_avatar');
 
+        // This data will be used by a Cloud Function to set custom claims.
         const profileData = {
           uid: user.uid,
           name: values.name,

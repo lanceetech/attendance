@@ -110,7 +110,7 @@ export default function LoginForm() {
     batch.set(unit3Ref, { name: "Quantum Physics", description: "The strange world of the very small.", code: "PHY301" });
 
     // Sample Classes
-    const createClass = (day: string, time: string, unitCode: string, unitName: string, roomName: string, lecturerId: string, lecturerName: string, studentIds: string[]) => {
+    const createClass = (id: string, day: string, time: string, unitCode: string, unitName: string, roomName: string, lecturerId: string, lecturerName: string, studentIds: string[]) => {
         const [startHour] = time.split(' - ')[0].split(':').map(Number);
         const [endHour] = time.split(' - ')[1].split(':').map(Number);
         const baseDate = new Date();
@@ -122,29 +122,24 @@ export default function LoginForm() {
         const endTime = new Date(baseDate);
         endTime.setHours(endHour);
 
-        return {
+        const classData = {
+            id: id,
             day, time, unitCode, unitName, room: roomName,
             lecturerId, lecturerName, studentIds,
             startTime: Timestamp.fromDate(startTime),
             endTime: Timestamp.fromDate(endTime),
         };
+        
+        const classRef = doc(firestore, "classes", id);
+        batch.set(classRef, classData);
+        const lectTimetableRef = doc(firestore, "lecturerTimetable", id);
+        batch.set(lectTimetableRef, classData);
+        const stuTimetableRef = doc(firestore, "studentTimetable", id);
+        batch.set(stuTimetableRef, classData);
     };
     
-    const class1Data = createClass("Monday", "08:00 - 10:00", "CS101", "Introduction to Computer Science", "Room 101", lecturerId, "Dr. Evelyn Reed", [studentId]);
-    const class1Ref = doc(firestore, "classes/class-001");
-    batch.set(class1Ref, class1Data);
-    const lectTimetable1Ref = doc(firestore, "lecturerTimetable/class-001");
-    batch.set(lectTimetable1Ref, class1Data);
-    const stuTimetable1Ref = doc(firestore, "studentTimetable/class-001");
-    batch.set(stuTimetable1Ref, class1Data);
-
-    const class2Data = createClass("Wednesday", "10:00 - 12:00", "MAT203", "Advanced Calculus", "Room 102", lecturerId, "Dr. Evelyn Reed", [studentId]);
-    const class2Ref = doc(firestore, "classes/class-002");
-    batch.set(class2Ref, class2Data);
-    const lectTimetable2Ref = doc(firestore, "lecturerTimetable/class-002");
-    batch.set(lectTimetable2Ref, class2Data);
-    const stuTimetable2Ref = doc(firestore, "studentTimetable/class-002");
-    batch.set(stuTimetable2Ref, class2Data);
+    createClass("class-001", "Monday", "08:00 - 10:00", "CS101", "Introduction to Computer Science", "Room 101", lecturerId, "Dr. Evelyn Reed", [studentId]);
+    createClass("class-002", "Wednesday", "10:00 - 12:00", "MAT203", "Advanced Calculus", "Room 102", lecturerId, "Dr. Evelyn Reed", [studentId]);
 
     await batch.commit();
   }
@@ -178,7 +173,7 @@ export default function LoginForm() {
                 avatar: adminAvatar?.id
             };
             const userDocRef = doc(firestore, 'users', user.uid);
-            await setDoc(userDocRef, profileData); // Ensure profile is set before seeding data
+            await setDoc(userDocRef, profileData);
             await seedSampleData();
              toast({
                 title: 'Welcome, Administrator!',
@@ -195,8 +190,9 @@ export default function LoginForm() {
           toast({
               variant: 'destructive',
               title: 'Admin Login Failed',
-              description: 'Could not sign in as administrator.',
+              description: 'Could not sign in as administrator. Please check the console for details.',
           });
+          console.error(error);
        }
     }
   };

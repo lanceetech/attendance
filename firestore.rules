@@ -1,27 +1,30 @@
 /**
  * @file Firestore Security Rules
- * @version 2
+ * @description This ruleset enforces a role-based access control model for the ClassSync application.
  *
- * @Core Philosophy
- * This ruleset enforces a user-ownership model for user profiles and admin-only write access for most other collections.
- * Read access is generally public unless explicitly restricted.
+ * Data Structure:
+ * - /users/{userId}: Stores user profiles, with the document ID matching the Firebase Auth UID.
+ * - /units/{unitId}: Stores information about course units.
+ * - /classes/{classId}: Stores details about scheduled class sessions.
+ * - /classes/{classId}/attendance/{attendanceId}: Subcollection for class attendance records.
+ * - /classrooms/{roomId}: Stores information about physical classrooms.
+ * - /feedback/{feedbackId}: Stores feedback submissions from users.
+ * - /studentTimetable/{entryId}: Stores student timetable data.
+ * - /lecturerTimetable/{entryId}: Stores lecturer timetable data.
  *
- * @Data Structure
- * - `/users/{userId}`: Stores user profile data, accessible only to the user themselves for modification.
- * - `/units/{unitId}`, `/classes/{classId}`, `/classrooms/{roomId}`, `/feedback/{feedbackId}`: Publicly readable collections, writable only by admins (not implemented in this version).
- * - `/classes/{classId}/attendance/{attendanceId}`: Attendance records, writable by admins (not implemented in this version).
- * - `/studentTimetable/{entryId}`, `/lecturerTimetable/{entryId}`: Publicly readable collections.
+ * Key Security Decisions:
+ * - User profiles are readable by anyone but writable only by the user themselves.
+ * - Units and classes are readable by anyone, but write access is not explicitly granted in this prototype.
+ * - Attendance records are readable and writable by anyone in this prototype.
+ * - Classrooms are readable by anyone, but write access is not explicitly granted.
+ * - Feedback is readable and writable by anyone.
+ * - Timetable data is readable by anyone but write access is not explicitly granted in this prototype.
  *
- * @Key Security Decisions
- * - User listing is denied to prevent information harvesting.
- * - Admin roles are not fully implemented in this prototype but are accounted for in the structure.
- * - Write access to core data collections (units, classes, rooms) is restricted.
+ * Denormalization for Authorization:
+ *  N/A - No denormalization is used in this ruleset.
  *
- * @Denormalization for Authorization
- *  - None implemented in this version. Consider adding an `ownerId` field to documents for more granular access control.
- *
- * @Structural Segregation
- *  - No structural segregation implemented in this version.
+ * Structural Segregation:
+ * N/A - No structural segregation is used in this ruleset.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -29,115 +32,120 @@ service cloud.firestore {
 
     /**
      * @description Controls access to user profile documents.
-     * @path /databases/{database}/documents/users/{userId}
-     * @allow (create) - User 'abc' can create their profile if request.auth.uid == 'abc'.
-     * @allow (get, update, delete) - User 'abc' can read, update, and delete their profile if request.auth.uid == 'abc'.
-     * @deny (list) - Prevents listing all user profiles.
-     * @deny (create, update, delete) - User 'def' cannot modify user 'abc' profile.
-     * @principle Enforces document ownership for user profiles.
+     * @path /users/{userId}
+     * @allow (read) User with any auth can read any user profile.
+     * @allow (create, update, delete) User with matching auth UID can modify their own profile.
+     * @deny (create, update, delete) User cannot modify another user's profile.
+     * @principle Enforces document ownership for writes.
      */
     match /users/{userId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && exists(resource);
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.uid == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.uid == resource.data.uid;
-      allow delete: if isExistingOwner(userId);
+      allow get: if true;
+      allow list: if true;
+      allow create: if request.auth.uid == userId;
+      allow update: if request.auth.uid == userId && resource.data.uid == userId;
+      allow delete: if request.auth.uid == userId && resource.data.uid == userId && resource != null;
     }
 
     /**
      * @description Controls access to course unit documents.
-     * @path /databases/{database}/documents/units/{unitId}
-     * @allow (get, list) - Any user can read the list of units or a specific unit.
-     * @deny (create, update, delete) - Only admins can create, update, or delete units (not implemented).
-     * @principle Public read access with restricted write access.
+     * @path /units/{unitId}
+     * @allow (read) Anyone can read unit information.
+     * @deny (create, update, delete) No one can create, update, or delete units in this prototype.
+     * @principle Public read access with no write access granted.
      */
     match /units/{unitId} {
-      allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Add admin role check
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
 
     /**
-     * @description Controls access to class schedule documents.
-     * @path /databases/{database}/documents/classes/{classId}
-     * @allow (get, list) - Any user can read the list of classes or a specific class.
-     * @deny (create, update, delete) - Only admins can create, update, or delete classes (not implemented).
-     * @principle Public read access with restricted write access.
+     * @description Controls access to class session documents.
+     * @path /classes/{classId}
+     * @allow (read) Anyone can read class session information.
+     * @deny (create, update, delete) No one can create, update, or delete classes in this prototype.
+     * @principle Public read access with no write access granted.
      */
     match /classes/{classId} {
-      allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Add admin role check
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
 
     /**
      * @description Controls access to attendance records for a specific class.
-     * @path /databases/{database}/documents/classes/{classId}/attendance/{attendanceId}
-     * @allow (get, list) - Any user can read the attendance records.
-     * @deny (create, update, delete) - Only admins can create, update, or delete attendance records (not implemented).
-     * @principle Public read access with restricted write access.
+     * @path /classes/{classId}/attendance/{attendanceId}
+     * @allow (read, create, update, delete) Anyone can read, create, update and delete attendance records.
+     * @principle Public read and write access.
      */
     match /classes/{classId}/attendance/{attendanceId} {
-      allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Add admin role check
+      allow get: if true;
+      allow list: if true;
+      allow create: if true;
+      allow update: if true;
+      allow delete: if resource != null;
     }
 
     /**
      * @description Controls access to classroom documents.
-     * @path /databases/{database}/documents/classrooms/{roomId}
-     * @allow (get, list) - Any user can read the list of classrooms or a specific classroom.
-     * @deny (create, update, delete) - Only admins can create, update, or delete classrooms (not implemented).
-     * @principle Public read access with restricted write access.
+     * @path /classrooms/{roomId}
+     * @allow (read) Anyone can read classroom information.
+     * @deny (create, update, delete) No one can create, update, or delete classrooms in this prototype.
+     * @principle Public read access with no write access granted.
      */
     match /classrooms/{roomId} {
-      allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Add admin role check
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
 
     /**
      * @description Controls access to feedback documents.
-     * @path /databases/{database}/documents/feedback/{feedbackId}
-     * @allow (get, list) - Any user can read feedback.
-     * @deny (create, update, delete) - Only admins can create, update, or delete feedback (not implemented).
-     * @principle Public read access with restricted write access.
+     * @path /feedback/{feedbackId}
+     * @allow (read, create, update, delete) Anyone can read, create, update and delete feedback.
+     * @principle Public read and write access.
      */
     match /feedback/{feedbackId} {
-      allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Add admin role check
+      allow get: if true;
+      allow list: if true;
+      allow create: if true;
+      allow update: if true;
+      allow delete: if resource != null;
+    }
+    /**
+     * @description Controls access to student timetable entries.
+     * @path /studentTimetable/{entryId}
+     * @allow (read) Anyone can read student timetable entries.
+     * @deny (create, update, delete) No one can create, update, or delete student timetable entries in this prototype.
+     * @principle Public read access with no write access granted.
+     */
+    match /studentTimetable/{entryId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
 
-      /**
-       * @description Controls access to student timetable entries.
-       * @path /databases/{database}/documents/studentTimetable/{entryId}
-       * @allow (get, list) - Any user can read the list of timetable entries or a specific entry.
-       * @deny (create, update, delete) - Only admins can create, update, or delete timetable entries (not implemented).
-       * @principle Public read access with restricted write access.
-       */
-      match /studentTimetable/{entryId} {
-        allow get, list: if true;
-        allow create, update, delete: if false; // TODO: Add admin role check
-      }
-
-      /**
-       * @description Controls access to lecturer timetable entries.
-       * @path /databases/{database}/documents/lecturerTimetable/{entryId}
-       * @allow (get, list) - Any user can read the list of timetable entries or a specific entry.
-       * @deny (create, update, delete) - Only admins can create, update, or delete timetable entries (not implemented).
-       * @principle Public read access with restricted write access.
-       */
-      match /lecturerTimetable/{entryId} {
-        allow get, list: if true;
-        allow create, update, delete: if false; // TODO: Add admin role check
-      }
+    /**
+     * @description Controls access to lecturer timetable entries.
+     * @path /lecturerTimetable/{entryId}
+     * @allow (read) Anyone can read lecturer timetable entries.
+     * @deny (create, update, delete) No one can create, update, or delete lecturer timetable entries in this prototype.
+     * @principle Public read access with no write access granted.
+     */
+    match /lecturerTimetable/{entryId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
   }
 }

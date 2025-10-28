@@ -46,9 +46,10 @@ export default function LoginForm() {
     }
 
     signInWithEmailAndPassword(auth, values.email, values.password)
-    .then((userCredential) => {
-        // Successful sign-in is handled by the global onAuthStateChanged listener.
-        // The dashboard page will handle the redirect. No need to push here.
+    .then(() => {
+        // On successful sign-in, navigate to the central dashboard.
+        // The dashboard page will then handle redirection based on the user's role.
+        router.push('/dashboard');
     })
     .catch((error: any) => {
         console.error('Authentication failed:', error);
@@ -97,6 +98,7 @@ export default function LoginForm() {
             };
             const userDocRef = doc(firestore, 'users', user.uid);
             await setDoc(userDocRef, profileData, { merge: true });
+            // After creating the profile, navigate to the dashboard.
             router.push('/dashboard');
           } catch (createError: any) {
                toast({

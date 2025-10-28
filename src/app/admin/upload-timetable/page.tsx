@@ -72,6 +72,17 @@ export default function UploadTimetablePage() {
         const allRows = results.data as any[];
         
         let writeCount = 0;
+        const validRows = allRows.filter(row => row.unitCode && row.unitCode.trim() !== '');
+
+        if (validRows.length === 0 && !seedCollections) {
+            toast({
+                variant: 'destructive',
+                title: 'No Valid Data Found',
+                description: 'The CSV file does not contain any valid rows with a unitCode.',
+            });
+            setIsUploading(false);
+            return;
+        }
 
         try {
             if (seedCollections) {
@@ -88,7 +99,7 @@ export default function UploadTimetablePage() {
             }
 
 
-            for (const row of allRows) {
+            for (const row of validRows) {
                 const [startHour, endHour] = row.time.split(' - ').map((t: string) => parseInt(t.split(':')[0]));
                 
                 const baseDate = new Date();
@@ -152,15 +163,15 @@ export default function UploadTimetablePage() {
                 path: 'batch write', // Path is indicative for batch operations
                 operation: 'write',
                 requestResourceData: { 
-                    message: `Batch write failed for ${allRows.length} documents.`,
-                    sampleData: allRows.length > 0 ? allRows[0] : null
+                    message: `Batch write failed for ${validRows.length} documents.`,
+                    sampleData: validRows.length > 0 ? validRows[0] : null
                 },
             });
             errorEmitter.emit('permission-error', contextualError);
             toast({
                 variant: 'destructive',
-                title: 'Firestore Error',
-                description: 'Could not save timetable data. Check console for details.',
+                title: 'Firestore Write Error',
+                description: 'Could not save timetable data. Check if data is valid and you have permissions.',
             });
         } finally {
             setIsUploading(false);

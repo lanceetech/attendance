@@ -5,7 +5,7 @@ import { useMemo } from "react";
 import { DashboardHeader } from "@/components/dashboard-header";
 import Timetable from "@/components/timetable";
 import { useCollection, useFirestore } from "@/firebase";
-import { collection } from "firebase/firestore";
+import { collection, query, where } from "firebase/firestore";
 import { Class as TimetableEntry } from "@/lib/data-contracts";
 import { useUserProfile } from "@/hooks/use-user-profile";
 
@@ -14,15 +14,21 @@ export default function StudentDashboard() {
   const firestore = useFirestore();
 
   const timetableQuery = useMemo(() => {
-    if (!firestore || !profile) return null;
-    // In a real app, you would filter by studentId. We are assuming some denormalization or a function to get student classes.
-    // For this demo, we can't filter directly on an array of student IDs in a simple query.
-    // Let's assume the 'studentTimetable' is pre-filtered or small enough for client-side filtering.
-    // A more scalable solution would involve a subcollection on the student document.
-    // For now, let's query where the student's ID might be in a hypothetical 'studentIds' array field.
-    // This is a common pattern but requires Firestore array-contains query.
-    // As a placeholder for a more complex backend, we'll fetch a general student timetable.
-    return collection(firestore, "studentTimetable");
+    if (!firestore) return null;
+    // In a real app, you would filter by studentId.
+    // For this demo, we'll fetch the general student timetable and rely on client-side filtering if needed.
+    // A more scalable solution would involve a subcollection on the student document or a query on an 'enrolledStudentIds' array.
+    // For now, this query fetches a denormalized collection intended for students.
+    const ref = collection(firestore, "studentTimetable");
+    if (!profile) {
+        // If the profile is not yet loaded, we return a query that will yield no results
+        // by creating a condition that is impossible to satisfy.
+        return query(ref, where("studentId", "==", ""));
+    }
+    // A real implementation would use something like `where('studentIds', 'array-contains', profile.uid)`
+    // but for now we fetch the whole collection.
+    return query(ref);
+
   }, [firestore, profile]);
 
   const { data: schedule, isLoading: isScheduleLoading } = useCollection<TimetableEntry>(timetableQuery);

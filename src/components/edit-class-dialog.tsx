@@ -76,16 +76,22 @@ export function EditClassDialog({ isOpen, onClose, classData }: EditClassDialogP
   const { data: lecturers, isLoading: lecturersLoading } = useCollection<UserProfile>(lecturersQuery);
 
   useEffect(() => {
-    if (classData) {
+    if (classData && units && rooms) {
       form.reset({
-        unitId: units?.find(u => u.code === classData.unitCode)?.id || '',
+        unitId: units.find(u => u.code === classData.unitCode)?.id || '',
         lecturerId: classData.lecturerId,
-        roomId: rooms?.find(r => r.name === classData.room)?.id || '',
+        roomId: rooms.find(r => r.name === classData.room)?.id || '',
         day: classData.day,
         time: classData.time,
       });
-    } else {
-      form.reset();
+    } else if (!classData) {
+      form.reset({
+        unitId: '',
+        lecturerId: '',
+        roomId: '',
+        day: '',
+        time: '',
+      });
     }
   }, [classData, form, units, rooms]);
   

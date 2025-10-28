@@ -12,6 +12,8 @@ import {
   SidebarFooter,
   SidebarInset,
   SidebarRail,
+  SidebarGroup,
+  SidebarGroupLabel,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -26,6 +28,7 @@ import {
   HardHat,
   Camera,
   FileUp,
+  Download,
 } from "lucide-react";
 import Logo from "./logo";
 import { Button } from "./ui/button";
@@ -50,9 +53,12 @@ const menuItems = {
   ],
   student: [
     { href: "/student", label: "My Timetable", icon: Calendar },
-    { href: "/student/scan-attendance", label: "Scan Attendance", icon: Camera },
     { href: "/student/feedback", label: "Report Issue", icon: Send },
   ],
+};
+
+const handleDownload = () => {
+    window.print();
 };
 
 export default function DashboardLayout({
@@ -86,7 +92,7 @@ export default function DashboardLayout({
             </div>
           </SidebarHeader>
           <SidebarContent>
-            <SidebarMenu>
+             <SidebarMenu>
               {currentMenuItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <Link href={item.href} passHref>
@@ -101,6 +107,33 @@ export default function DashboardLayout({
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
+            {role === 'student' && (
+              <SidebarGroup>
+                <SidebarGroupLabel>Academics</SidebarGroupLabel>
+                 <SidebarMenu>
+                    <SidebarMenuItem>
+                         <Link href="/student/scan-attendance" passHref>
+                            <SidebarMenuButton
+                            isActive={pathname === "/student/scan-attendance"}
+                            tooltip="Scan Attendance"
+                            >
+                                <Camera />
+                                <span>Scan Attendance</span>
+                            </SidebarMenuButton>
+                         </Link>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton
+                        onClick={handleDownload}
+                        tooltip="Download Timetable"
+                        >
+                            <Download />
+                            <span>Download Timetable</span>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroup>
+            )}
           </SidebarContent>
           <SidebarFooter>
             <Button variant="ghost" className="w-full justify-start gap-2" onClick={handleLogout}>

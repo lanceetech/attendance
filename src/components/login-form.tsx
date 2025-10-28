@@ -13,7 +13,7 @@ import { useAuth, useFirestore } from '@/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import Link from 'next/link';
 import { Separator } from './ui/separator';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, writeBatch, Timestamp } from 'firebase/firestore';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const formSchema = z.object({
@@ -62,6 +62,93 @@ export default function LoginForm() {
     });
   };
 
+  const seedSampleData = async () => {
+    if (!firestore) return;
+    const batch = writeBatch(firestore);
+
+    // Sample Users
+    const studentAvatar = PlaceHolderImages.find(img => img.id === 'student_avatar');
+    const lecturerAvatar = PlaceHolderImages.find(img => img.id === 'lecturer_avatar');
+
+    const lecturerId = 'lec-001';
+    const lecturerRef = doc(firestore, 'users', lecturerId);
+    batch.set(lecturerRef, {
+        uid: lecturerId,
+        name: 'Dr. Evelyn Reed',
+        email: 'lec.evelyn.reed@classsync.app',
+        role: 'lecturer',
+        avatar: lecturerAvatar?.id
+    });
+
+    const studentId = 'stu-001';
+    const studentRef = doc(firestore, 'users', studentId);
+    batch.set(studentRef, {
+        uid: studentId,
+        name: 'Sam Carter',
+        email: 'stu.sam.carter@classsync.app',
+        role: 'student',
+        avatar: studentAvatar?.id
+    });
+    
+    // Sample Classrooms
+    const room1Ref = doc(firestore, "classrooms", "room-101");
+    batch.set(room1Ref, { name: "Room 101", capacity: 50, status: "Available" });
+    const room2Ref = doc(firestore, "classrooms", "room-102");
+    batch.set(room2Ref, { name: "Room 102", capacity: 30, status: "Available" });
+    const room3Ref = doc(firestore, "classrooms", "room-205");
+    batch.set(room3Ref, { name: "Room 205", capacity: 120, status: "In Use" });
+    const room4Ref = doc(firestore, "classrooms", "lab-a");
+    batch.set(room4Ref, { name: "Lab A", capacity: 25, status: "Maintenance" });
+
+
+    // Sample Units
+    const unit1Ref = doc(firestore, "units", "cs101");
+    batch.set(unit1Ref, { name: "Introduction to Computer Science", description: "Fundamentals of programming and computer science.", code: "CS101" });
+    const unit2Ref = doc(firestore, "units", "mat203");
+    batch.set(unit2Ref, { name: "Advanced Calculus", description: "Exploring multi-variable calculus and differential equations.", code: "MAT203" });
+    const unit3Ref = doc(firestore, "units", "phy301");
+    batch.set(unit3Ref, { name: "Quantum Physics", description: "The strange world of the very small.", code: "PHY301" });
+
+    // Sample Classes
+    const createClass = (day: string, time: string, unitCode: string, unitName: string, roomName: string, lecturerId: string, lecturerName: string, studentIds: string[]) => {
+        const [startHour] = time.split(' - ')[0].split(':').map(Number);
+        const [endHour] = time.split(' - ')[1].split(':').map(Number);
+        const baseDate = new Date();
+        baseDate.setMinutes(0);
+        baseDate.setSeconds(0);
+        baseDate.setMilliseconds(0);
+        const startTime = new Date(baseDate);
+        startTime.setHours(startHour);
+        const endTime = new Date(baseDate);
+        endTime.setHours(endHour);
+
+        return {
+            day, time, unitCode, unitName, room: roomName,
+            lecturerId, lecturerName, studentIds,
+            startTime: Timestamp.fromDate(startTime),
+            endTime: Timestamp.fromDate(endTime),
+        };
+    };
+    
+    const class1Data = createClass("Monday", "08:00 - 10:00", "CS101", "Introduction to Computer Science", "Room 101", lecturerId, "Dr. Evelyn Reed", [studentId]);
+    const class1Ref = doc(firestore, "classes/class-001");
+    batch.set(class1Ref, class1Data);
+    const lectTimetable1Ref = doc(firestore, "lecturerTimetable/class-001");
+    batch.set(lectTimetable1Ref, class1Data);
+    const stuTimetable1Ref = doc(firestore, "studentTimetable/class-001");
+    batch.set(stuTimetable1Ref, class1Data);
+
+    const class2Data = createClass("Wednesday", "10:00 - 12:00", "MAT203", "Advanced Calculus", "Room 102", lecturerId, "Dr. Evelyn Reed", [studentId]);
+    const class2Ref = doc(firestore, "classes/class-002");
+    batch.set(class2Ref, class2Data);
+    const lectTimetable2Ref = doc(firestore, "lecturerTimetable/class-002");
+    batch.set(lectTimetable2Ref, class2Data);
+    const stuTimetable2Ref = doc(firestore, "studentTimetable/class-002");
+    batch.set(stuTimetable2Ref, class2Data);
+
+    await batch.commit();
+  }
+
   const handleAdminLogin = async () => {
     const adminEmail = 'admin@classsync.app';
     const adminPassword = 'password123';
@@ -91,7 +178,12 @@ export default function LoginForm() {
                 avatar: adminAvatar?.id
             };
             const userDocRef = doc(firestore, 'users', user.uid);
-            await setDoc(userDocRef, profileData, { merge: true });
+            await setDoc(userDocRef, profileData); // Ensure profile is set before seeding data
+            await seedSampleData();
+             toast({
+                title: 'Welcome, Administrator!',
+                description: 'We have created an account for you and added some sample data.',
+            });
           } catch (createError: any) {
                toast({
                   variant: 'destructive',
@@ -164,3 +256,5 @@ export default function LoginForm() {
     </div>
   );
 }
+
+    

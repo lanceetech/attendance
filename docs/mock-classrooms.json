@@ -1,0 +1,30 @@
+
+{
+    "classrooms": [
+        {
+            "name": "Room 101",
+            "capacity": 50,
+            "status": "Available"
+        },
+        {
+            "name": "Room 102",
+            "capacity": 50,
+            "status": "Available"
+        },
+        {
+            "name": "Lab A",
+            "capacity": 30,
+            "status": "In Use"
+        },
+        {
+            "name": "LT-02",
+            "capacity": 150,
+            "status": "Available"
+        },
+        {
+            "name": "Seminar Room 3",
+            "capacity": 25,
+            "status": "Maintenance"
+        }
+    ]
+}

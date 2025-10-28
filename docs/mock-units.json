@@ -1,0 +1,35 @@
+
+{
+    "units": [
+        {
+            "name": "Introduction to Computer Science",
+            "description": "An introductory course to the fundamentals of computer science and programming.",
+            "code": "CS101"
+        },
+        {
+            "name": "Advanced Calculus",
+            "description": "A deep dive into multivariable calculus and its applications.",
+            "code": "MAT203"
+        },
+        {
+            "name": "Quantum Physics",
+            "description": "Exploring the strange and fascinating world of quantum mechanics.",
+            "code": "PHY301"
+        },
+        {
+            "name": "Shakespeare",
+            "description": "A study of William Shakespeare's major plays and sonnets.",
+            "code": "ENG201"
+        },
+        {
+            "name": "Data Structures and Algorithms",
+            "description": "Fundamental concepts of data structures and algorithmic techniques.",
+            "code": "CS202"
+        },
+        {
+            "name": "World History",
+            "description": "A survey of major global events and civilizations.",
+            "code": "HIS101"
+        }
+    ]
+}

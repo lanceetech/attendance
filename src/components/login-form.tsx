@@ -46,6 +46,9 @@ export default function LoginForm() {
     }
 
     signInWithEmailAndPassword(auth, values.email, values.password)
+    .then(() => {
+        router.push('/admin');
+    })
     .catch((error: any) => {
         console.error('Authentication failed:', error);
         let description = 'Could not sign in. Please check your credentials.';
@@ -77,6 +80,7 @@ export default function LoginForm() {
 
     try {
       await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
+      router.push('/admin');
     } catch (error: any) {
        if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
           try {
@@ -94,8 +98,9 @@ export default function LoginForm() {
             await setDoc(userDocRef, profileData);
              toast({
                 title: 'Welcome, Administrator!',
-                description: 'We have created an account for you.',
+                description: 'We have created a default admin account for you.',
             });
+            router.push('/admin');
           } catch (createError: any) {
                toast({
                   variant: 'destructive',

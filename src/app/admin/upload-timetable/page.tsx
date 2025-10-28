@@ -14,9 +14,11 @@ import { collection, writeBatch, Timestamp, doc } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
-const exampleCsv = `unitId,lecturerId,lecturerName,roomId,day,time,unitCode,unitName,room,studentIds
-unit-001,lec-001,Dr. Alan Grant,room-001,Monday,08:00 - 10:00,CS101,Introduction to Computer Science,Room 101,student-001;student-002
-unit-002,lec-002,Dr. Ian Malcolm,room-002,Tuesday,10:00 - 12:00,MAT203,Advanced Calculus,Room 102,student-001;student-003`;
+const exampleCsv = `unitCode,unitName,lecturerName,room,day,time,studentEmails
+CS101,Introduction to Computer Science,Dr. Alan Grant,Room 101,Monday,08:00 - 10:00,student1@example.com;student2@example.com
+MAT203,Advanced Calculus,Dr. Ian Malcolm,Room 102,Tuesday,10:00 - 12:00,student1@example.com;student3@example.com
+PHY301,Quantum Physics,Dr. Ellie Sattler,Lab A,Wednesday,11:00 - 13:00,student2@example.com
+ENG201,Shakespeare,Dr. John Hammond,LT-02,Monday,14:00 - 16:00,student3@example.com`;
 
 export default function UploadTimetablePage() {
   const [csvData, setCsvData] = useState('');
@@ -73,11 +75,17 @@ export default function UploadTimetablePage() {
             const endTime = new Date(baseDate);
             endTime.setHours(endHour);
 
+            // A real app would have proper IDs, here we create them from names
+            const unitId = `unit-${row.unitCode.toLowerCase()}`;
+            const lecturerId = `lecturer-${row.lecturerName.replace(/\s+/g, '-').toLowerCase()}`;
+            const roomId = `room-${row.room.replace(/\s+/g, '-').toLowerCase()}`;
+
+
             const classData = {
-              unitId: row.unitId,
-              lecturerId: row.lecturerId,
+              unitId: unitId,
+              lecturerId: lecturerId,
               lecturerName: row.lecturerName,
-              roomId: row.roomId,
+              roomId: roomId,
               day: row.day,
               time: row.time,
               unitCode: row.unitCode,
@@ -93,7 +101,8 @@ export default function UploadTimetablePage() {
             const lecturerTimetableRef = doc(collection(firestore, 'lecturerTimetable'));
             batch.set(lecturerTimetableRef, classData);
             
-            const studentIds = (row.studentIds || '').split(';').filter(Boolean);
+            // A real app would look up student IDs from emails
+            const studentIds = (row.studentEmails || '').split(';').filter(Boolean).map((email: string) => `student-${email.split('@')[0]}`);
             if (studentIds.length > 0) {
                 const studentTimetableRef = doc(collection(firestore, 'studentTimetable'));
                 batch.set(studentTimetableRef, { ...classData, studentIds });

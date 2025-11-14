@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -44,6 +45,7 @@ const menuItems = {
     { href: "/admin/upload-timetable", label: "Upload Timetable", icon: FileUp },
     { href: "/admin/resolve-conflicts", label: "Resolve Conflicts", icon: AlertTriangle },
     { href: "/admin/classrooms", label: "Classrooms", icon: DoorOpen },
+    { href: "/admin/users", label: "User Management", icon: Users },
     { href: "/admin/system-status", label: "System Status", icon: HardHat },
   ],
   lecturer: [

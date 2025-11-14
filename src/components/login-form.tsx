@@ -86,7 +86,7 @@ export default function LoginForm() {
           try {
             const userCredential = await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
             const user = userCredential.user;
-            const adminAvatar = PlaceHolderImages.find(img => img.id === 'admin_avatar');
+            const adminAvatar = PlaceHolderImages.find(img => img.id === 'umma_logo_avatar');
             
             // This is the data that will be used by a Cloud Function to set custom claims.
             const profileData = {

@@ -1,6 +1,12 @@
 {
   "placeholderImages": [
     {
+      "id": "umma_logo_avatar",
+      "description": "Umma University logo for avatars",
+      "imageUrl": "/images/umma.jpg",
+      "imageHint": "university logo"
+    },
+    {
       "id": "admin_avatar",
       "description": "Avatar for the administrator",
       "imageUrl": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxhZG1pbmlzdHJhdG9yJTIwcG9ydHJhaXR8ZW58MHx8fHwxNzYxMDgzODU4fDA&ixlib=rb-4.1.0&q=80&w=1080",

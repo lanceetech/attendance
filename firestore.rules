@@ -1,27 +1,4 @@
-/**
- * @fileoverview Firestore Security Rules for ClassSync.
- *
- * Core Philosophy:
- * This ruleset prioritizes strict user ownership for user profiles, but allows
- * administrators to read the full list of users for management purposes.
- * Other data is publicly readable but requires authentication for writes.
- *
- * Data Structure:
- * - /users/{userId}: Stores public user profiles, where {userId} matches the Firebase Auth UID.
- * - /units/{unitId}: Stores information about course units.
- * - /classes/{classId}: Stores information about scheduled classes.
- * - /classes/{classId}/attendance/{attendanceId}: Stores attendance records for each class.
- * - /classrooms/{roomId}: Stores information about classrooms.
- * - /feedback/{feedbackId}: Stores user feedback.
- * - /studentTimetable/{entryId}: Stores denormalized timetable data for all students for quick lookups.
- * - /lecturerTimetable/{entryId}: Stores denormalized timetable data for lecturers for quick lookups.
- *
- * Key Security Decisions:
- * - User profiles (/users/{userId}) are only readable and writable by the owner.
- * - Admin users (with a custom claim `admin: true`) are allowed to list all users.
- * - All other collections allow public read access for ease of development.
- * - Write operations on all collections require authentication.
- */
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -43,128 +20,52 @@ service cloud.firestore {
       return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-
-    /**
-     * @description Controls access to user profile data.
-     * @path /users/{userId}
-     * @allow (create) - If the user is creating their own profile (auth UID matches userId).
-     * @allow (get) - If the user is the owner of the profile.
-     * @allow (list) - **DEV ONLY**: If the user is signed in. For production, this should be restricted to admins.
-     * @deny (list) - If the user is not signed in.
-     * @principle Enforces document ownership for user profiles, with an exception for listing.
-     */
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      // NOTE: This rule is relaxed for development. In production, it should be restricted to admins.
+      allow get: if isOwner(userId) || isAdmin();
+      // Only admins can list all users.
       allow list: if isAdmin();
       allow create: if isOwner(userId) && request.resource.data.uid == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.uid == resource.data.uid;
+      allow update: if isExistingOwner(userId);
       allow delete: if isExistingOwner(userId);
     }
 
-    /**
-     * @description Controls access to course unit data.
-     * @path /units/{unitId}
-     * @allow (get, list) - Public read access.
-     * @allow (create, update, delete) - Only authenticated users can create, update, or delete units.
-     * @deny (create, update, delete) - If the user is not authenticated.
-     * @principle Allows public read access but requires authentication for writes.
-     */
     match /units/{unitId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
     }
 
-    /**
-     * @description Controls access to scheduled class session data.
-     * @path /classes/{classId}
-     * @allow (get, list) - Public read access.
-     * @allow (create, update, delete) - Only authenticated users can create, update, or delete classes.
-     * @deny (create, update, delete) - If the user is not authenticated.
-     * @principle Allows public read access but requires authentication for writes.
-     */
     match /classes/{classId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
     }
-
-    /**
-     * @description Controls access to attendance records for a specific class.
-     * @path /classes/{classId}/attendance/{attendanceId}
-     * @allow (get, list) - Public read access.
-     * @allow (create, update, delete) - Only authenticated users can create, update, or delete attendance records.
-     * @deny (create, update, delete) - If the user is not authenticated.
-     * @principle Allows public read access but requires authentication for writes.
-     */
+    
     match /classes/{classId}/attendance/{attendanceId} {
-      allow get, list: if true;
+      allow read: if isSignedIn();
+      // Allow lecturers or students to create their own attendance record
       allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
+      allow write: if isAdmin();
     }
 
-    /**
-     * @description Controls access to classroom data.
-     * @path /classrooms/{roomId}
-     * @allow (get, list) - Public read access.
-     * @allow (create, update, delete) - Only authenticated users can create, update, or delete classrooms.
-     * @deny (create, update, delete) - If the user is not authenticated.
-     * @principle Allows public read access but requires authentication for writes.
-     */
     match /classrooms/{roomId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
     }
 
-    /**
-     * @description Controls access to feedback submissions.
-     * @path /feedback/{feedbackId}
-     * @allow (get, list) - Public read access.
-     * @allow (create, update, delete) - Only authenticated users can create, update, or delete feedback.
-     * @deny (create, update, delete) - If the user is not authenticated.
-     * @principle Allows public read access but requires authentication for writes.
-     */
     match /feedback/{feedbackId} {
-      allow get, list: if true;
+      allow read: if isAdmin();
+      // Students and lecturers can submit feedback
       allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
+      allow write: if isAdmin();
     }
 
-    /**
-     * @description Controls access to student timetable data.
-     * @path /studentTimetable/{entryId}
-     * @allow (get, list) - Public read access.
-     * @allow (create, update, delete) - Only authenticated users can create, update, or delete entries.
-     * @deny (create, update, delete) - If the user is not authenticated.
-     * @principle Allows public read access but requires authentication for writes.
-     */
     match /studentTimetable/{entryId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
     }
 
-    /**
-     * @description Controls access to lecturer timetable data.
-     * @path /lecturerTimetable/{entryId}
-     * @allow (get, list) - Public read access.
-     * @allow (create, update, delete) - Only authenticated users can create, update, or delete entries.
-     * @deny (create, update, delete) - If the user is not authenticated.
-     * @principle Allows public read access but requires authentication for writes.
-     */
     match /lecturerTimetable/{entryId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
     }
   }
 }

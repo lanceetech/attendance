@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { DashboardHeader } from "@/components/dashboard-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
@@ -13,28 +13,28 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Mail, RefreshCw } from "lucide-react";
+import { Mail, RefreshCw, UserCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/firebase";
+import { useAuth, useCollection, useFirestore } from "@/firebase";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { UserCircle } from "lucide-react";
-
-// Mock data to represent users in the system
-const mockUsers = [
-  { id: '1', name: 'Dr. Alan Grant', email: 'alan.grant@example.com', role: 'lecturer' },
-  { id: '2', name: 'Dr. Ian Malcolm', email: 'ian.malcolm@example.com', role: 'lecturer' },
-  { id: '3', name: 'Dr. Ellie Sattler', email: 'ellie.sattler@example.com', role: 'lecturer' },
-  { id: '4', name: 'Student One', email: 'student1@example.com', role: 'student' },
-  { id: '5', name: 'Student Two', email: 'student2@example.com', role: 'student' },
-  { id: '6', name: 'Student Three', email: 'student3@example.com', role: 'student' },
-];
+import { collection } from 'firebase/firestore';
+import { UserProfile } from '@/lib/data-contracts';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function UserManagementPage() {
   const { toast } = useToast();
   const auth = useAuth();
+  const firestore = useFirestore();
   const [resettingId, setResettingId] = useState<string | null>(null);
+
+  const usersQuery = useMemo(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'users');
+  }, [firestore]);
+
+  const { data: users, isLoading } = useCollection<UserProfile>(usersQuery);
 
   const handlePasswordReset = async (email: string, id: string) => {
     if (!auth) {
@@ -87,7 +87,22 @@ export default function UserManagementPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mockUsers.map((user) => (
+                  {isLoading && [...Array(5)].map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Skeleton className="h-8 w-8 rounded-full" />
+                          <div className="space-y-1">
+                            <Skeleton className="h-4 w-24" />
+                            <Skeleton className="h-3 w-32" />
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
+                      <TableCell className="text-right"><Skeleton className="h-9 w-36" /></TableCell>
+                    </TableRow>
+                  ))}
+                  {users?.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
@@ -101,7 +116,10 @@ export default function UserManagementPage() {
                       <TableCell>
                         <Badge
                           variant={user.role === 'lecturer' ? 'secondary' : 'outline'}
-                          className={cn(user.role === 'lecturer' && "border-transparent bg-blue-100 text-blue-800")}
+                          className={cn(
+                            user.role === 'lecturer' && "border-transparent bg-blue-100 text-blue-800",
+                            user.role === 'admin' && "border-transparent bg-primary/20 text-primary"
+                            )}
                         >
                           {user.role}
                         </Badge>
@@ -126,9 +144,6 @@ export default function UserManagementPage() {
                 </TableBody>
               </Table>
             </div>
-             <p className="text-xs text-muted-foreground mt-4">
-              Note: This page uses mock data for user display. The password reset functionality is live.
-            </p>
           </CardContent>
         </Card>
       </main>

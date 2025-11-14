@@ -30,10 +30,10 @@ service cloud.firestore {
      * @description Controls access to user profile data.
      * @path /users/{userId}
      * @allow (create) - If the user is creating their own profile (auth UID matches userId).
-     * @allow (get, update, delete) - If the user is the owner of the profile (auth UID matches userId).
-     * @allow (list) - If the user has an 'admin' custom claim.
-     * @deny (list) - If the user is not an admin.
-     * @principle Enforces document ownership for user profiles, with an exception for admin listing.
+     * @allow (get) - If the user is the owner of the profile.
+     * @allow (list) - **DEV ONLY**: If the user is signed in. For production, this should be restricted to admins.
+     * @deny (list) - If the user is not signed in.
+     * @principle Enforces document ownership for user profiles, with an exception for listing.
      */
     match /users/{userId} {
       function isOwner(userId) {
@@ -42,12 +42,13 @@ service cloud.firestore {
       function isExistingOwner(userId) {
           return isOwner(userId) && resource != null;
       }
-      function isAdmin() {
-          return request.auth != null && request.auth.token.admin == true;
+      function isSignedIn() {
+        return request.auth != null;
       }
 
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
+      allow get: if isOwner(userId);
+      // NOTE: This rule is relaxed for development. In production, it should be restricted to admins.
+      allow list: if isSignedIn(); 
       allow create: if isOwner(userId) && request.resource.data.uid == userId;
       allow update: if isExistingOwner(userId) && request.resource.data.uid == resource.data.uid;
       allow delete: if isExistingOwner(userId);

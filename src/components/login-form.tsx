@@ -21,8 +21,8 @@ const formSchema = z.object({
   password: z.string().min(1, { message: 'Password is required.' }),
 });
 
-const adminEmail = 'admin@classsync.app';
-const adminPassword = 'password123';
+const adminEmail = 'classSync.admin@umma.ac.ke';
+const adminPassword = 'Password123';
 
 export default function LoginForm() {
   const router = useRouter();
@@ -70,8 +70,8 @@ export default function LoginForm() {
       await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
       // AuthProvider will handle redirect
     } catch (error: any) {
-      if (error.code === 'auth/user-not-found') {
-        // First time admin login: create the user
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+        // First time admin login or if credentials are just wrong, try creating
         try {
           const userCredential = await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
           const user = userCredential.user;
@@ -85,10 +85,13 @@ export default function LoginForm() {
           });
           // The onAuthStateChanged listener in AuthProvider will handle the redirect.
         } catch (createError: any) {
-          toast({ variant: 'destructive', title: 'Admin Setup Failed', description: createError.message });
+          // This might fail if the user exists but password was wrong.
+           if (createError.code === 'auth/email-already-in-use') {
+             toast({ variant: 'destructive', title: 'Admin Sign-In Failed', description: 'Invalid password for the admin account.' });
+           } else {
+             toast({ variant: 'destructive', title: 'Admin Setup Failed', description: createError.message });
+           }
         }
-      } else if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
-         toast({ variant: 'destructive', title: 'Admin Sign-In Failed', description: 'Invalid credentials for admin.' });
       } else {
         toast({ variant: 'destructive', title: 'Admin Sign-In Failed', description: error.message });
       }

@@ -23,6 +23,8 @@ const formSchema = z.object({
   role: z.enum(['student', 'lecturer'], { required_error: 'You must select a role.' }),
 });
 
+const adminEmail = 'classSync.admin@umma.ac.ke';
+
 export default function SignupForm() {
   const router = useRouter();
   const auth = useAuth();
@@ -55,16 +57,28 @@ export default function SignupForm() {
       if (user) {
         const userDocRef = doc(firestore, 'users', user.uid);
         
+        const isFirstAdmin = values.email.toLowerCase() === adminEmail;
+        const role = isFirstAdmin ? 'admin' : values.role;
+        
         const studentAvatar = PlaceHolderImages.find(img => img.id === 'student_avatar');
         const lecturerAvatar = PlaceHolderImages.find(img => img.id === 'lecturer_avatar');
+        const adminAvatar = PlaceHolderImages.find(img => img.id === 'admin_avatar');
 
-        // This data will be used by a Cloud Function to set custom claims.
+        let avatarId;
+        if (role === 'admin') {
+            avatarId = adminAvatar?.id;
+        } else if (role === 'lecturer') {
+            avatarId = lecturerAvatar?.id;
+        } else {
+            avatarId = studentAvatar?.id;
+        }
+
         const profileData = {
           uid: user.uid,
           name: values.name,
           email: values.email,
-          role: values.role,
-          avatar: values.role === 'student' ? studentAvatar?.id : lecturerAvatar?.id
+          role: role,
+          avatar: avatarId
         };
 
         await setDoc(userDocRef, profileData, { merge: true });

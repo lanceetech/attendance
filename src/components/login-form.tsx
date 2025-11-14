@@ -9,11 +9,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth, useFirestore } from '@/firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { useAuth } from '@/firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import Link from 'next/link';
-import { doc, setDoc } from 'firebase/firestore';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useState } from 'react';
 
 const formSchema = z.object({
@@ -21,16 +19,10 @@ const formSchema = z.object({
   password: z.string().min(1, { message: 'Password is required.' }),
 });
 
-const adminEmail = 'classSync.admin@umma.ac.ke';
-const adminPassword = 'Password123';
-
 export default function LoginForm() {
-  const router = useRouter();
   const auth = useAuth();
-  const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isAdminSubmitting, setIsAdminSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -58,48 +50,6 @@ export default function LoginForm() {
       })
       .finally(() => setIsSubmitting(false));
   };
-
-  const handleAdminSignIn = async () => {
-    if (!auth || !firestore) {
-      toast({ variant: 'destructive', title: 'Firebase not initialized' });
-      return;
-    }
-    setIsAdminSubmitting(true);
-
-    try {
-      await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
-      // AuthProvider will handle redirect
-    } catch (error: any) {
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-        // First time admin login or if credentials are just wrong, try creating
-        try {
-          const userCredential = await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
-          const user = userCredential.user;
-          const adminAvatar = PlaceHolderImages.find(img => img.id === 'admin_avatar');
-          await setDoc(doc(firestore, 'users', user.uid), {
-            uid: user.uid,
-            name: 'Admin User',
-            email: adminEmail,
-            role: 'admin',
-            avatar: adminAvatar?.id
-          });
-          // The onAuthStateChanged listener in AuthProvider will handle the redirect.
-        } catch (createError: any) {
-          // This might fail if the user exists but password was wrong.
-           if (createError.code === 'auth/email-already-in-use') {
-             toast({ variant: 'destructive', title: 'Admin Sign-In Failed', description: 'Invalid password for the admin account.' });
-           } else {
-             toast({ variant: 'destructive', title: 'Admin Setup Failed', description: createError.message });
-           }
-        }
-      } else {
-        toast({ variant: 'destructive', title: 'Admin Sign-In Failed', description: error.message });
-      }
-    } finally {
-      setIsAdminSubmitting(false);
-    }
-  };
-
 
   return (
     <div className="space-y-4">
@@ -148,9 +98,6 @@ export default function LoginForm() {
       </div>
       <Button variant="outline" className="w-full" asChild>
         <Link href="/signup">Create an Account</Link>
-      </Button>
-      <Button variant="secondary" className="w-full" onClick={handleAdminSignIn} disabled={isAdminSubmitting}>
-        {isAdminSubmitting ? 'Signing In...' : 'Sign In as Administrator'}
       </Button>
     </div>
   );

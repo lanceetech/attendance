@@ -2,8 +2,9 @@
  * @fileoverview Firestore Security Rules for ClassSync.
  *
  * Core Philosophy:
- * This ruleset prioritizes strict user ownership for user profiles and open access for other data in the application,
- * but with authorization checks on write operations. This allows for easy prototyping and testing.
+ * This ruleset prioritizes strict user ownership for user profiles, but allows
+ * administrators to read the full list of users for management purposes.
+ * Other data is publicly readable but requires authentication for writes.
  *
  * Data Structure:
  * - /users/{userId}: Stores public user profiles, where {userId} matches the Firebase Auth UID.
@@ -17,12 +18,9 @@
  *
  * Key Security Decisions:
  * - User profiles (/users/{userId}) are only readable and writable by the owner.
- * - Listing of users is disallowed for privacy.
+ * - Admin users (with a custom claim `admin: true`) are allowed to list all users.
  * - All other collections allow public read access for ease of development.
  * - Write operations on all collections require authentication.
- *
- * Denormalization for Authorization:
- *  - Attendance records will include the student's UID to quickly verify attendance.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -32,11 +30,10 @@ service cloud.firestore {
      * @description Controls access to user profile data.
      * @path /users/{userId}
      * @allow (create) - If the user is creating their own profile (auth UID matches userId).
-     * @allow (get, update, delete) - If the user is the owner of the profile (auth UID matches userId) and the document exists.
-     * @deny (list) - Listing users is not permitted.
-     * @deny (create) - If the user is trying to create a profile for another user.
-     * @deny (update, delete) - If the user is not the owner of the profile or the document does not exist.
-     * @principle Enforces document ownership for user profiles.
+     * @allow (get, update, delete) - If the user is the owner of the profile (auth UID matches userId).
+     * @allow (list) - If the user has an 'admin' custom claim.
+     * @deny (list) - If the user is not an admin.
+     * @principle Enforces document ownership for user profiles, with an exception for admin listing.
      */
     match /users/{userId} {
       function isOwner(userId) {
@@ -45,9 +42,12 @@ service cloud.firestore {
       function isExistingOwner(userId) {
           return isOwner(userId) && resource != null;
       }
+      function isAdmin() {
+          return request.auth != null && request.auth.token.admin == true;
+      }
 
-      allow get: if isOwner(userId);
-      allow list: if false;
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
       allow create: if isOwner(userId) && request.resource.data.uid == userId;
       allow update: if isExistingOwner(userId) && request.resource.data.uid == resource.data.uid;
       allow delete: if isExistingOwner(userId);

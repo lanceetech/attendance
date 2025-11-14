@@ -29,7 +29,6 @@ export default function AdminDashboard() {
   
   const stats = [
     { title: "Total Units", value: courseUnits?.length ?? 0, icon: BookOpen, href: "/admin/manage-schedule", isLoading: loadingUnits },
-    { title: "Total Students", value: 134, icon: Users, href: "#", isLoading: false }, // Mocked value
     { title: "Active Conflicts", value: 2, icon: AlertTriangle, href: "/admin/resolve-conflicts", isLoading: false }, // Mocked for now
     { title: "Classrooms", value: classrooms?.length ?? 0, icon: DoorOpen, href: "/admin/classrooms", isLoading: loadingClassrooms },
   ];
@@ -38,7 +37,7 @@ export default function AdminDashboard() {
     <>
       <DashboardHeader title="Administrator Dashboard" />
       <main className="p-4 sm:p-6">
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {stats.map((stat) => (
             <Card key={stat.title}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

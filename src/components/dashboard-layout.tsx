@@ -42,7 +42,6 @@ const menuItems = {
     { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
     { href: "/admin/manage-schedule", label: "Manage Schedule", icon: Calendar },
     { href: "/admin/upload-timetable", label: "Upload Timetable", icon: FileUp },
-    { href: "/admin/manage-users", label: "Manage Users", icon: Users },
     { href: "/admin/resolve-conflicts", label: "Resolve Conflicts", icon: AlertTriangle },
     { href: "/admin/classrooms", label: "Classrooms", icon: DoorOpen },
     { href: "/admin/system-status", label: "System Status", icon: HardHat },

@@ -19,8 +19,8 @@ service cloud.firestore {
       // Only an admin can list all users.
       allow list: if isAdmin();
       
-      // A user can create their own profile.
-      allow create: if isSignedIn() && request.auth.uid == userId;
+      // A user can create their own profile. An admin can also create users.
+      allow create: if (isSignedIn() && request.auth.uid == userId) || isAdmin();
 
       // An admin can update any user. A user can update their own profile.
       allow update: if isAdmin() || (isSignedIn() && request.auth.uid == userId);

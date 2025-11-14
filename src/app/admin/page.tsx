@@ -27,17 +27,24 @@ export default function AdminDashboard() {
   }, [firestore]);
   const { data: classrooms, isLoading: loadingClassrooms } = useCollection(classroomsQuery);
   
+  const usersQuery = useMemo(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'users');
+  }, [firestore]);
+  const { data: users, isLoading: loadingUsers } = useCollection(usersQuery);
+
   const stats = [
     { title: "Total Units", value: courseUnits?.length ?? 0, icon: BookOpen, href: "/admin/manage-schedule", isLoading: loadingUnits },
-    { title: "Active Conflicts", value: 2, icon: AlertTriangle, href: "/admin/resolve-conflicts", isLoading: false }, // Mocked for now
+    { title: "Registered Users", value: users?.length ?? 0, icon: Users, href: "/admin/users", isLoading: loadingUsers },
     { title: "Classrooms", value: classrooms?.length ?? 0, icon: DoorOpen, href: "/admin/classrooms", isLoading: loadingClassrooms },
+    { title: "Active Conflicts", value: 2, icon: AlertTriangle, href: "/admin/resolve-conflicts", isLoading: false }, // Mocked for now
   ];
 
   return (
     <>
       <DashboardHeader title="Administrator Dashboard" />
       <main className="p-4 sm:p-6">
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat) => (
             <Card key={stat.title}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -72,6 +79,9 @@ export default function AdminDashboard() {
                 <CardContent className="flex flex-wrap gap-4">
                     <Button asChild>
                         <Link href="/admin/manage-schedule">Manage Schedule</Link>
+                    </Button>
+                     <Button asChild>
+                        <Link href="/admin/users">Manage Users</Link>
                     </Button>
                     <Button asChild variant="secondary">
                         <Link href="/admin/resolve-conflicts">Resolve Conflicts</Link>

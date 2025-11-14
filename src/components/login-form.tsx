@@ -94,7 +94,7 @@ export default function LoginForm() {
         console.error('Authentication failed:', error);
         
         // Special handling for first-time admin login
-        if (activeTab === 'admin' && (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential')) {
+        if (activeTab === 'admin' && error.code === 'auth/user-not-found') {
              toast({
                 title: 'Setting up Admin Account...',
                 description: 'First-time admin login. Creating default account.',
@@ -108,8 +108,10 @@ export default function LoginForm() {
         }
 
         let description = 'Could not sign in. Please check your credentials.';
-        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
           description = 'Invalid email or password. Please try again.';
+        } else if (error.code === 'auth/user-not-found') {
+          description = 'This account does not exist. Please create an account.';
         } else if (error.code === 'auth/too-many-requests') {
           description = 'Access to this account has been temporarily disabled due to many failed login attempts. You can immediately restore it by resetting your password or you can try again later.';
         }

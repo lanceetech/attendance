@@ -7,26 +7,26 @@ service cloud.firestore {
       return request.auth != null;
     }
     
-    function isOwner(userId) {
-      return request.auth != null && request.auth.uid == userId;
-    }
-
-    function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-    }
-
-    // A user is an admin if their user document has the role 'admin'.
+    // Checks if the requesting user's document in Firestore has the 'admin' role.
     function isAdmin() {
       return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
     match /users/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
-      // Only admins can list all users.
+      // An admin can read any user profile. A user can read their own profile.
+      allow get: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+      
+      // Only an admin can list all users.
       allow list: if isAdmin();
-      allow create: if isOwner(userId) && request.resource.data.uid == userId;
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+      
+      // A user can create their own profile.
+      allow create: if isSignedIn() && request.auth.uid == userId;
+
+      // An admin can update any user. A user can update their own profile.
+      allow update: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+      
+      // Only an admin can delete users. A user can delete their own profile.
+      allow delete: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
     }
 
     match /units/{unitId} {

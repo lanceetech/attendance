@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -10,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
-import { LogOut } from "lucide-react";
+import { LogOut, UserCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { SidebarTrigger } from "./ui/sidebar";
 import { useUserProfile } from "@/hooks/use-user-profile";
@@ -28,6 +29,7 @@ export function DashboardHeader({ title }: DashboardHeaderProps) {
   const { profile, isLoading } = useUserProfile();
 
   const handleLogout = async () => {
+    if (!auth) return;
     await signOut(auth);
     router.push("/");
   };
@@ -59,10 +61,7 @@ export function DashboardHeader({ title }: DashboardHeaderProps) {
                   <p className="font-semibold text-sm">{profile.name}</p>
                   <p className="text-xs text-muted-foreground capitalize">{profile.role}</p>
                 </div>
-                <Avatar className="h-9 w-9">
-                  {avatarImage && <AvatarImage src={avatarImage.imageUrl} alt={profile.name || ""} />}
-                  <AvatarFallback>{profile.name?.charAt(0)}</AvatarFallback>
-                </Avatar>
+                <UserCircle className="h-8 w-8 text-muted-foreground" />
               </>
             )}
           </button>

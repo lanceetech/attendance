@@ -14,6 +14,7 @@ import { formatDistanceToNow } from 'date-fns';
 type EnrichedFeedback = Feedback & {
     userName?: string;
     userRole?: string;
+    userEmail?: string;
 };
 
 export default function ViewFeedbackPage() {
@@ -39,6 +40,7 @@ export default function ViewFeedbackPage() {
       ...f,
       userName: usersMap.get(f.userId)?.name,
       userRole: usersMap.get(f.userId)?.role,
+      userEmail: usersMap.get(f.userId)?.email,
     }));
   }, [feedbackList, users]);
 
@@ -60,6 +62,7 @@ export default function ViewFeedbackPage() {
                   <Skeleton className="h-10 w-10 rounded-full" />
                   <div className="flex-1 space-y-2">
                     <Skeleton className="h-4 w-1/4" />
+                    <Skeleton className="h-3 w-1/2" />
                     <Skeleton className="h-6 w-full" />
                     <Skeleton className="h-3 w-1/5" />
                   </div>
@@ -77,14 +80,17 @@ export default function ViewFeedbackPage() {
                 </Avatar>
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
-                    <p className="font-semibold">{feedback.userName || 'Anonymous'}</p>
+                    <div>
+                        <p className="font-semibold">{feedback.userName || 'Anonymous'}</p>
+                        <p className="text-xs text-muted-foreground">{feedback.userEmail}</p>
+                    </div>
                     <p className="text-xs text-muted-foreground">
                       {feedback.timestamp
                         ? formatDistanceToNow(feedback.timestamp.toDate(), { addSuffix: true })
                         : 'Just now'}
                     </p>
                   </div>
-                   <p className="text-xs text-muted-foreground capitalize mb-2">{feedback.userRole}</p>
+                   <p className="text-xs text-muted-foreground capitalize my-2">{feedback.userRole}</p>
                   <p className="text-sm text-foreground">{feedback.message}</p>
                 </div>
               </div>

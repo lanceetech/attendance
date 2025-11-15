@@ -17,7 +17,7 @@ import { PlusCircle, Edit, Trash2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useCollection, useFirestore } from "@/firebase";
 import { collection, doc, deleteDoc, query, where } from "firebase/firestore";
-import { Class as ClassEntry, UserProfile } from "@/lib/data-contracts";
+import { Class as ClassEntry, UserProfile, Unit, Classroom } from "@/lib/data-contracts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EditClassDialog } from "@/components/edit-class-dialog";
 import {
@@ -56,7 +56,14 @@ export default function ManageSchedulePage() {
 
   const { data: lecturers, isLoading: lecturersLoading } = useCollection<UserProfile>(lecturersQuery);
 
-  const isLoading = classesLoading || lecturersLoading;
+  const unitsQuery = useMemo(() => firestore ? collection(firestore, 'units') : null, [firestore]);
+  const roomsQuery = useMemo(() => firestore ? collection(firestore, 'classrooms') : null, [firestore]);
+
+  const { data: units, isLoading: unitsLoading } = useCollection<Unit>(unitsQuery);
+  const { data: rooms, isLoading: roomsLoading } = useCollection<Classroom>(roomsQuery);
+
+
+  const isLoading = classesLoading || lecturersLoading || unitsLoading || roomsLoading;
 
   const handleAddNew = () => {
     setSelectedClass(null);
@@ -202,8 +209,10 @@ export default function ManageSchedulePage() {
         isOpen={isEditDialogOpen} 
         onClose={handleEditDialogClose} 
         classData={selectedClass}
+        units={units || []}
         lecturers={lecturers || []}
-        lecturersLoading={lecturersLoading}
+        rooms={rooms || []}
+        isLoading={isLoading}
       />
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>

@@ -30,7 +30,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { useCollection, useFirestore } from '@/firebase';
+import { useFirestore } from '@/firebase';
 import { collection, doc, setDoc, Timestamp } from 'firebase/firestore';
 import { Input } from './ui/input';
 import { UserProfile, Unit, Classroom, Class } from '@/lib/data-contracts';
@@ -60,11 +60,13 @@ interface EditClassDialogProps {
   isOpen: boolean;
   onClose: () => void;
   classData: Class | null;
+  units: Unit[];
   lecturers: UserProfile[];
-  lecturersLoading: boolean;
+  rooms: Classroom[];
+  isLoading: boolean;
 }
 
-export function EditClassDialog({ isOpen, onClose, classData, lecturers, lecturersLoading }: EditClassDialogProps) {
+export function EditClassDialog({ isOpen, onClose, classData, units, lecturers, rooms, isLoading }: EditClassDialogProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
 
@@ -78,12 +80,6 @@ export function EditClassDialog({ isOpen, onClose, classData, lecturers, lecture
       time: '',
     },
   });
-
-  const unitsQuery = useMemo(() => firestore ? collection(firestore, 'units') : null, [firestore]);
-  const roomsQuery = useMemo(() => firestore ? collection(firestore, 'classrooms') : null, [firestore]);
-
-  const { data: units, isLoading: unitsLoading } = useCollection<Unit>(unitsQuery);
-  const { data: rooms, isLoading: roomsLoading } = useCollection<Classroom>(roomsQuery);
 
   useEffect(() => {
     if (classData && units && rooms) {
@@ -180,7 +176,6 @@ export function EditClassDialog({ isOpen, onClose, classData, lecturers, lecture
     }
   };
 
-  const isLoading = unitsLoading || roomsLoading || lecturersLoading;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

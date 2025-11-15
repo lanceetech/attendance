@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -9,8 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
-import { LogOut } from "lucide-react";
+import { LogOut, UserCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { SidebarTrigger } from "./ui/sidebar";
 import { useUserProfile } from "@/hooks/use-user-profile";
@@ -33,8 +33,6 @@ export function DashboardHeader({ title }: DashboardHeaderProps) {
     router.push("/");
   };
   
-  const avatarImage = PlaceHolderImages.find(img => img.id === profile?.avatar);
-
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">
       <div className="flex items-center gap-2 sm:gap-4">
@@ -61,8 +59,9 @@ export function DashboardHeader({ title }: DashboardHeaderProps) {
                   <p className="text-xs text-muted-foreground capitalize">{profile.role}</p>
                 </div>
                 <Avatar className="h-9 w-9">
-                  <AvatarImage src={avatarImage?.imageUrl} alt={profile.name} />
-                  <AvatarFallback>{profile.name.charAt(0)}</AvatarFallback>
+                   <AvatarFallback>
+                        <UserCircle className="h-6 w-6 text-muted-foreground" />
+                    </AvatarFallback>
                 </Avatar>
               </>
             )}

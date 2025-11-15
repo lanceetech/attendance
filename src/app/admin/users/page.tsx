@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Mail, RefreshCw, UserCircle } from "lucide-react";
+import { Mail, RefreshCw, UserCircle, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, useCollection, useFirestore } from "@/firebase";
 import { sendPasswordResetEmail } from "firebase/auth";
@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { collection } from 'firebase/firestore';
 import { UserProfile } from '@/lib/data-contracts';
 import { Skeleton } from '@/components/ui/skeleton';
+import PrintableReport from '@/components/printable-report';
 
 export default function UserManagementPage() {
   const { toast } = useToast();
@@ -64,88 +65,137 @@ export default function UserManagementPage() {
       setResettingId(null);
     }
   };
+  
+  const handleDownload = () => {
+    window.print();
+  };
 
   return (
     <>
       <DashboardHeader title="User Management" />
       <main className="p-4 sm:p-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-headline">Registered Users</CardTitle>
-            <CardDescription>
-              View all registered students and lecturers and manage their accounts.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-lg border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>User</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading && [...Array(5)].map((_, i) => (
-                    <TableRow key={i}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Skeleton className="h-8 w-8 rounded-full" />
-                          <div className="space-y-1">
-                            <Skeleton className="h-4 w-24" />
-                            <Skeleton className="h-3 w-32" />
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
-                      <TableCell className="text-right"><Skeleton className="h-9 w-36" /></TableCell>
+        <PrintableReport title="User List Report">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>User</TableHead>
+                <TableHead>Role</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users?.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <UserCircle className="h-8 w-8 text-muted-foreground" />
+                      <div>
+                        <div className="font-medium">{user.name}</div>
+                        <div className="text-sm text-muted-foreground">{user.email}</div>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={user.role === 'lecturer' ? 'secondary' : 'outline'}
+                      className={cn(
+                        user.role === 'lecturer' && "border-transparent bg-blue-100 text-blue-800",
+                        user.role === 'admin' && "border-transparent bg-primary/20 text-primary"
+                        )}
+                    >
+                      {user.role}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </PrintableReport>
+
+        <div className="non-printable">
+            <Card>
+            <CardHeader className="flex flex-row justify-between items-center">
+                <div>
+                    <CardTitle className="font-headline">Registered Users</CardTitle>
+                    <CardDescription>
+                    View all registered students and lecturers and manage their accounts.
+                    </CardDescription>
+                </div>
+                 <Button onClick={handleDownload} variant="outline">
+                    <Download className="mr-2 h-4 w-4" />
+                    Download Report
+                </Button>
+            </CardHeader>
+            <CardContent>
+                <div className="rounded-lg border">
+                <Table>
+                    <TableHeader>
+                    <TableRow>
+                        <TableHead>User</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  ))}
-                  {users?.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <UserCircle className="h-8 w-8 text-muted-foreground" />
-                          <div>
-                            <div className="font-medium">{user.name}</div>
-                            <div className="text-sm text-muted-foreground">{user.email}</div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={user.role === 'lecturer' ? 'secondary' : 'outline'}
-                          className={cn(
-                            user.role === 'lecturer' && "border-transparent bg-blue-100 text-blue-800",
-                            user.role === 'admin' && "border-transparent bg-primary/20 text-primary"
+                    </TableHeader>
+                    <TableBody>
+                    {isLoading && [...Array(5)].map((_, i) => (
+                        <TableRow key={i}>
+                        <TableCell>
+                            <div className="flex items-center gap-3">
+                            <Skeleton className="h-8 w-8 rounded-full" />
+                            <div className="space-y-1">
+                                <Skeleton className="h-4 w-24" />
+                                <Skeleton className="h-3 w-32" />
+                            </div>
+                            </div>
+                        </TableCell>
+                        <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
+                        <TableCell className="text-right"><Skeleton className="h-9 w-36" /></TableCell>
+                        </TableRow>
+                    ))}
+                    {users?.map((user) => (
+                        <TableRow key={user.id}>
+                        <TableCell>
+                            <div className="flex items-center gap-3">
+                            <UserCircle className="h-8 w-8 text-muted-foreground" />
+                            <div>
+                                <div className="font-medium">{user.name}</div>
+                                <div className="text-sm text-muted-foreground">{user.email}</div>
+                            </div>
+                            </div>
+                        </TableCell>
+                        <TableCell>
+                            <Badge
+                            variant={user.role === 'lecturer' ? 'secondary' : 'outline'}
+                            className={cn(
+                                user.role === 'lecturer' && "border-transparent bg-blue-100 text-blue-800",
+                                user.role === 'admin' && "border-transparent bg-primary/20 text-primary"
+                                )}
+                            >
+                            {user.role}
+                            </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                            <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePasswordReset(user.email, user.id)}
+                            disabled={resettingId === user.id}
+                            >
+                            {resettingId === user.id ? (
+                                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                                <Mail className="mr-2 h-4 w-4" />
                             )}
-                        >
-                          {user.role}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handlePasswordReset(user.email, user.id)}
-                          disabled={resettingId === user.id}
-                        >
-                          {resettingId === user.id ? (
-                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                          ) : (
-                            <Mail className="mr-2 h-4 w-4" />
-                          )}
-                          Reset Password
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+                            Reset Password
+                            </Button>
+                        </TableCell>
+                        </TableRow>
+                    ))}
+                    </TableBody>
+                </Table>
+                </div>
+            </CardContent>
+            </Card>
+        </div>
       </main>
     </>
   );

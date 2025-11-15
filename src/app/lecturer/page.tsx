@@ -11,6 +11,7 @@ import { collection, query, where } from "firebase/firestore";
 import { Class as TimetableEntry } from "@/lib/data-contracts";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import UpcomingClasses from "@/components/upcoming-classes";
+import PrintableReport from "@/components/printable-report";
 
 export default function LecturerDashboard() {
   const { profile, isLoading: isProfileLoading } = useUserProfile();
@@ -31,24 +32,36 @@ export default function LecturerDashboard() {
   };
 
   const isLoading = isProfileLoading || isScheduleLoading;
+  const welcomeTitle = isLoading || !profile ? "Welcome" : `Welcome, ${profile.name}`;
+  const description = "Here is your teaching schedule for the week.";
 
   return (
     <>
       <DashboardHeader title="My Timetable" />
       <main className="p-4 sm:p-6">
-        <div className="flex justify-end mb-4">
-          <Button onClick={handleDownload}>
-            <Download className="mr-2 h-4 w-4" />
-            Download Timetable
-          </Button>
+        <PrintableReport title="Lecturer Timetable">
+            <Timetable 
+              schedule={schedule || []}
+              isLoading={false}
+              title={welcomeTitle}
+              description={description}
+            />
+        </PrintableReport>
+        <div className="non-printable">
+            <div className="flex justify-end mb-4">
+            <Button onClick={handleDownload}>
+                <Download className="mr-2 h-4 w-4" />
+                Download Timetable
+            </Button>
+            </div>
+            <UpcomingClasses schedule={schedule || []} isLoading={isLoading} />
+            <Timetable 
+            schedule={schedule || []}
+            isLoading={isLoading}
+            title={welcomeTitle}
+            description={description}
+            />
         </div>
-        <UpcomingClasses schedule={schedule || []} isLoading={isLoading} />
-        <Timetable 
-          schedule={schedule || []}
-          isLoading={isLoading}
-          title={isLoading || !profile ? "Welcome" : `Welcome, ${profile.name}`}
-          description="Here is your teaching schedule for the week."
-        />
       </main>
     </>
   );

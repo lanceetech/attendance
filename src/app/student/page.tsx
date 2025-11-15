@@ -9,6 +9,7 @@ import { collection, query, where } from "firebase/firestore";
 import { Class as TimetableEntry } from "@/lib/data-contracts";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import UpcomingClasses from "@/components/upcoming-classes";
+import PrintableReport from "@/components/printable-report";
 
 export default function StudentDashboard() {
   const { profile, isLoading: isProfileLoading } = useUserProfile();
@@ -35,18 +36,30 @@ export default function StudentDashboard() {
   const { data: schedule, isLoading: isScheduleLoading } = useCollection<TimetableEntry>(timetableQuery);
 
   const isLoading = isProfileLoading || isScheduleLoading;
+  const welcomeTitle = isLoading || !profile ? "Welcome" : `Welcome, ${profile.name}`;
+  const description = "Here is your class schedule for the week.";
 
   return (
     <>
       <DashboardHeader title="My Timetable" />
       <main className="p-4 sm:p-6">
-        <UpcomingClasses schedule={schedule || []} isLoading={isLoading} />
-        <Timetable
-          schedule={schedule || []}
-          isLoading={isLoading}
-          title={isLoading || !profile ? "Welcome" : `Welcome, ${profile.name}`}
-          description="Here is your class schedule for the week."
-        />
+        <PrintableReport title="Student Timetable">
+            <Timetable 
+                schedule={schedule || []}
+                isLoading={false}
+                title={welcomeTitle}
+                description={description}
+            />
+        </PrintableReport>
+        <div className="non-printable">
+            <UpcomingClasses schedule={schedule || []} isLoading={isLoading} />
+            <Timetable
+            schedule={schedule || []}
+            isLoading={isLoading}
+            title={welcomeTitle}
+            description={description}
+            />
+        </div>
       </main>
     </>
   );

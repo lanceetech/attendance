@@ -32,6 +32,7 @@ import {
   Users,
   Settings,
   FileText,
+  MessageSquare,
 } from "lucide-react";
 import Logo from "./logo";
 import { Button } from "./ui/button";
@@ -48,6 +49,7 @@ const menuItems = {
     { href: "/admin/resolve-conflicts", label: "Resolve Conflicts", icon: AlertTriangle },
     { href: "/admin/classrooms", label: "Classrooms", icon: DoorOpen },
     { href: "/admin/users", label: "User Management", icon: Users },
+    { href: "/admin/feedback", label: "View Feedback", icon: MessageSquare },
     { href: "/admin/reports", label: "Reports", icon: FileText },
     { href: "/admin/system-status", label: "System Status", icon: HardHat },
     { href: "/admin/settings", label: "Settings", icon: Settings },

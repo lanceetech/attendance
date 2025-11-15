@@ -77,6 +77,9 @@ export default function AdminDashboard() {
                      <Button asChild>
                         <Link href="/admin/users">Manage Users</Link>
                     </Button>
+                    <Button asChild>
+                        <Link href="/admin/classrooms">Manage Classrooms</Link>
+                    </Button>
                     <Button asChild variant="secondary">
                         <Link href="/admin/resolve-conflicts">Resolve Conflicts</Link>
                     </Button>

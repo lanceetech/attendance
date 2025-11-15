@@ -48,6 +48,7 @@ const menuItems = {
     { href: "/admin/classrooms", label: "Classrooms", icon: DoorOpen },
     { href: "/admin/users", label: "User Management", icon: Users },
     { href: "/admin/system-status", label: "System Status", icon: HardHat },
+    { href: "/admin/settings", label: "Settings", icon: Settings },
   ],
   lecturer: [
     { href: "/lecturer", label: "My Timetable", icon: Calendar },

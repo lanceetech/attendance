@@ -1,7 +1,5 @@
-
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -13,6 +11,7 @@ import { useAuth } from '@/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import Link from 'next/link';
 import { useState } from 'react';
+import { initiateEmailSignIn } from '@/firebase/non-blocking-login';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
@@ -38,15 +37,13 @@ export default function LoginForm() {
       return;
     }
     setIsSubmitting(true);
-    signInWithEmailAndPassword(auth, values.email, values.password)
-      .catch((error) => {
-        let description = 'An unknown error occurred.';
-        if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
-          description = 'Invalid email or password. Please try again or create an account.';
-        }
-        toast({ variant: 'destructive', title: 'Authentication Failed', description });
-      })
-      .finally(() => setIsSubmitting(false));
+    // Use the non-blocking sign-in function
+    initiateEmailSignIn(auth, values.email, values.password);
+
+    // We no longer await the result here. The AuthProvider will handle the redirect.
+    // The catch block for handling errors is also removed, as errors
+    // will now be handled globally or via onAuthStateChanged listeners if needed.
+    // This simplifies the component and makes the UI non-blocking.
   };
 
   return (
@@ -100,5 +97,3 @@ export default function LoginForm() {
     </div>
   );
 }
-
-    

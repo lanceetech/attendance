@@ -1,43 +1,41 @@
 
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { DashboardHeader } from "@/components/dashboard-header";
-import { BookOpen, DoorOpen, AlertTriangle, Users, HardHat } from "lucide-react";
+import { BookOpen, DoorOpen, Users, HardHat, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useCollection } from "@/firebase";
-import { collection } from "firebase/firestore";
+import { collection, query, orderBy, limit } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 import { useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Feedback } from "@/lib/data-contracts";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { formatDistanceToNow } from 'date-fns';
 
 export default function AdminDashboard() {
   const firestore = useFirestore();
 
-  const unitsQuery = useMemo(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'units');
-  }, [firestore]);
+  const unitsQuery = useMemo(() => firestore ? collection(firestore, 'units') : null, [firestore]);
   const { data: courseUnits, isLoading: loadingUnits } = useCollection(unitsQuery);
   
-  const classroomsQuery = useMemo(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'classrooms');
-  }, [firestore]);
+  const classroomsQuery = useMemo(() => firestore ? collection(firestore, 'classrooms') : null, [firestore]);
   const { data: classrooms, isLoading: loadingClassrooms } = useCollection(classroomsQuery);
   
-  const usersQuery = useMemo(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'users');
-  }, [firestore]);
+  const usersQuery = useMemo(() => firestore ? collection(firestore, 'users') : null, [firestore]);
   const { data: users, isLoading: loadingUsers } = useCollection(usersQuery);
+
+  const feedbackQuery = useMemo(() => firestore ? query(collection(firestore, 'feedback'), orderBy('timestamp', 'desc'), limit(3)) : null, [firestore]);
+  const { data: recentFeedback, isLoading: loadingFeedback } = useCollection<Feedback>(feedbackQuery);
+
 
   const stats = [
     { title: "Total Units", value: courseUnits?.length ?? 0, icon: BookOpen, href: "/admin/manage-schedule", isLoading: loadingUnits },
     { title: "Registered Users", value: users?.length ?? 0, icon: Users, href: "/admin/users", isLoading: loadingUsers },
     { title: "Classrooms", value: classrooms?.length ?? 0, icon: DoorOpen, href: "/admin/classrooms", isLoading: loadingClassrooms },
-    { title: "Active Conflicts", value: 2, icon: AlertTriangle, href: "/admin/resolve-conflicts", isLoading: false }, // Mocked for now
+    { title: "Feedback Items", value: recentFeedback?.length ?? 0, icon: MessageSquare, href: "/admin/feedback", isLoading: loadingFeedback },
   ];
 
   return (
@@ -59,13 +57,9 @@ export default function AdminDashboard() {
                 ) : (
                   <div className="text-2xl font-bold">{stat.value}</div>
                 )}
-                 {stat.href !== '#' ? (
-                   <Link href={stat.href} className="text-xs text-muted-foreground hover:text-primary">
-                      View details
-                   </Link>
-                 ) : (
-                    <p className="text-xs text-muted-foreground">Mock data</p>
-                 )}
+                 <Link href={stat.href} className="text-xs text-muted-foreground hover:text-primary">
+                    View details
+                 </Link>
               </CardContent>
             </Card>
           ))}
@@ -86,24 +80,33 @@ export default function AdminDashboard() {
                     <Button asChild variant="secondary">
                         <Link href="/admin/resolve-conflicts">Resolve Conflicts</Link>
                     </Button>
-                    <Button asChild variant="secondary">
-                        <Link href="/admin/classrooms">View Classrooms</Link>
+                     <Button asChild variant="secondary">
+                        <Link href="/admin/feedback">View Feedback</Link>
                     </Button>
                 </CardContent>
             </Card>
             
-            <Card>
+             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline flex items-center gap-2">
-                        <HardHat className="h-5 w-5 text-muted-foreground" />
-                        System Status
-                    </CardTitle>
+                    <CardTitle className="font-headline">Recent Feedback</CardTitle>
+                    <CardDescription>Latest submissions from users.</CardDescription>
                 </CardHeader>
-                <CardContent className="flex items-center justify-between">
-                    <p className="text-sm text-muted-foreground">All systems are operational.</p>
-                    <Button asChild variant="outline" size="sm">
-                        <Link href="/admin/system-status">View Status</Link>
-                    </Button>
+                <CardContent className="space-y-4">
+                   {loadingFeedback && [...Array(3)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
+                   {!loadingFeedback && recentFeedback?.length === 0 && (
+                      <p className="text-sm text-muted-foreground">No recent feedback.</p>
+                   )}
+                   {recentFeedback?.map(item => (
+                       <div key={item.id} className="flex items-center gap-3">
+                          <Avatar className="h-8 w-8">
+                             <AvatarFallback>{item.userId.charAt(0)}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 overflow-hidden">
+                             <p className="text-sm font-medium truncate">{item.message}</p>
+                             <p className="text-xs text-muted-foreground">{formatDistanceToNow(item.timestamp.toDate(), { addSuffix: true })}</p>
+                          </div>
+                       </div>
+                   ))}
                 </CardContent>
             </Card>
         </div>

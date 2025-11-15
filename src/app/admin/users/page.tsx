@@ -13,22 +13,33 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Mail, RefreshCw, UserCircle, Download } from "lucide-react";
+import { Mail, RefreshCw, UserCircle, Download, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, useCollection, useFirestore } from "@/firebase";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { collection } from 'firebase/firestore';
+import { collection, doc, deleteDoc } from 'firebase/firestore';
 import { UserProfile } from '@/lib/data-contracts';
 import { Skeleton } from '@/components/ui/skeleton';
 import PrintableReport from '@/components/printable-report';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function UserManagementPage() {
   const { toast } = useToast();
   const auth = useAuth();
   const firestore = useFirestore();
   const [resettingId, setResettingId] = useState<string | null>(null);
+  const [userToDelete, setUserToDelete] = useState<UserProfile | null>(null);
 
   const usersQuery = useMemo(() => {
     if (!firestore) return null;
@@ -69,6 +80,30 @@ export default function UserManagementPage() {
   const handleDownload = () => {
     window.print();
   };
+
+  const confirmDelete = async () => {
+    if (!firestore || !userToDelete) return;
+
+    try {
+      // NOTE: This only deletes the Firestore record.
+      // Deleting the Firebase Auth user requires admin privileges and a backend function,
+      // which is beyond the current scope.
+      await deleteDoc(doc(firestore, 'users', userToDelete.uid));
+      toast({
+        title: "User Deleted",
+        description: `${userToDelete.name}'s profile has been removed from the database.`,
+      });
+    } catch (error: any) {
+       toast({
+        variant: "destructive",
+        title: "Error Deleting User",
+        description: error.message || "Could not delete the user. Please try again.",
+      });
+      console.error("User deletion error:", error);
+    } finally {
+      setUserToDelete(null);
+    }
+  }
 
   return (
     <>
@@ -155,7 +190,10 @@ export default function UserManagementPage() {
                         <TableRow key={user.id}>
                         <TableCell>
                             <div className="flex items-center gap-3">
-                            <UserCircle className="h-8 w-8 text-muted-foreground" />
+                              <Avatar className="h-9 w-9">
+                                <AvatarImage src={PlaceHolderImages.find(img => img.id === user.avatar)?.imageUrl} alt={user.name} />
+                                <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                              </Avatar>
                             <div>
                                 <div className="font-medium">{user.name}</div>
                                 <div className="text-sm text-muted-foreground">{user.email}</div>
@@ -174,19 +212,29 @@ export default function UserManagementPage() {
                             </Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                            <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handlePasswordReset(user.email, user.id)}
-                            disabled={resettingId === user.id}
-                            >
-                            {resettingId === user.id ? (
-                                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                                <Mail className="mr-2 h-4 w-4" />
-                            )}
-                            Reset Password
-                            </Button>
+                            <div className="flex justify-end gap-2">
+                                <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handlePasswordReset(user.email, user.id)}
+                                disabled={resettingId === user.id}
+                                >
+                                {resettingId === user.id ? (
+                                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                    <Mail className="mr-2 h-4 w-4" />
+                                )}
+                                Reset Password
+                                </Button>
+                                <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => setUserToDelete(user)}
+                                >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                                </Button>
+                            </div>
                         </TableCell>
                         </TableRow>
                     ))}
@@ -196,6 +244,20 @@ export default function UserManagementPage() {
             </CardContent>
             </Card>
         </div>
+        <AlertDialog open={!!userToDelete} onOpenChange={(isOpen) => !isOpen && setUserToDelete(null)}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete the user profile for <span className="font-bold">{userToDelete?.name}</span>. Their authentication account will remain, but they will lose all profile data.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={confirmDelete}>Confirm Delete</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
       </main>
     </>
   );

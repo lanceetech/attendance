@@ -6,7 +6,7 @@ import { DashboardHeader } from '@/components/dashboard-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCollection, useFirestore } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
-import { Feedback, UserProfile } from '@/lib/data-contracts';
+import { Feedback } from '@/lib/data-contracts';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
@@ -25,26 +25,7 @@ export default function ViewFeedbackPage() {
     return query(collection(firestore, 'feedback'), orderBy('timestamp', 'desc'));
   }, [firestore]);
 
-  const usersQuery = useMemo(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'users');
-  }, [firestore]);
-
-  const { data: feedbackList, isLoading: isFeedbackLoading } = useCollection<Feedback>(feedbackQuery);
-  const { data: users, isLoading: areUsersLoading } = useCollection<UserProfile>(usersQuery);
-
-  const enrichedFeedback: EnrichedFeedback[] | null = useMemo(() => {
-    if (!feedbackList || !users) return null;
-    const usersMap = new Map(users.map(u => [u.uid, u]));
-    return feedbackList.map(f => ({
-      ...f,
-      userName: usersMap.get(f.userId)?.name,
-      userRole: usersMap.get(f.userId)?.role,
-      userEmail: usersMap.get(f.userId)?.email,
-    }));
-  }, [feedbackList, users]);
-
-  const isLoading = isFeedbackLoading || areUsersLoading;
+  const { data: feedbackList, isLoading } = useCollection<EnrichedFeedback>(feedbackQuery);
 
   return (
     <>
@@ -68,12 +49,12 @@ export default function ViewFeedbackPage() {
                   </div>
                 </div>
               ))}
-            {!isLoading && (!enrichedFeedback || enrichedFeedback.length === 0) && (
+            {!isLoading && (!feedbackList || feedbackList.length === 0) && (
               <div className="text-center text-muted-foreground py-12">
                 <p>There is no feedback to display right now.</p>
               </div>
             )}
-            {enrichedFeedback?.map((feedback) => (
+            {feedbackList?.map((feedback) => (
               <div key={feedback.id} className="flex items-start gap-4 rounded-lg border p-4">
                 <Avatar>
                   <AvatarFallback>{feedback.userName?.charAt(0) || 'U'}</AvatarFallback>

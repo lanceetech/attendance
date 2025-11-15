@@ -49,6 +49,9 @@ export type AttendanceRecord = {
 export type Feedback = {
   id: string;
   userId: string;
+  userName: string;
+  userRole: string;
+  userEmail: string;
   message: string;
   timestamp: Timestamp;
 };

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -7,12 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Send } from "lucide-react";
-import { useFirestore, useUser } from "@/firebase";
+import { useFirestore } from "@/firebase";
 import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { collection, serverTimestamp } from "firebase/firestore";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
+import { useUserProfile } from "@/hooks/use-user-profile";
 
 
 const feedbackSchema = z.object({
@@ -20,7 +22,7 @@ const feedbackSchema = z.object({
 });
 
 export default function FeedbackPage() {
-  const { user } = useUser();
+  const { user, profile } = useUserProfile();
   const firestore = useFirestore();
   const { toast } = useToast();
   
@@ -32,7 +34,7 @@ export default function FeedbackPage() {
   });
 
   const onSubmit = (values: z.infer<typeof feedbackSchema>) => {
-    if (!user || !firestore) {
+    if (!user || !firestore || !profile) {
       toast({
         title: "Error",
         description: "You must be logged in to submit feedback.",
@@ -44,6 +46,9 @@ export default function FeedbackPage() {
     const feedbackRef = collection(firestore, "feedback");
     addDocumentNonBlocking(feedbackRef, {
       userId: user.uid,
+      userName: profile.name,
+      userRole: profile.role,
+      userEmail: profile.email,
       message: values.feedback,
       timestamp: serverTimestamp(),
     }).then(() => {

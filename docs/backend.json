@@ -179,6 +179,18 @@
           "type": "string",
           "description": "Reference to the User who submitted the feedback."
         },
+        "userName": {
+            "type": "string",
+            "description": "The denormalized name of the user who submitted the feedback."
+        },
+        "userRole": {
+            "type": "string",
+            "description": "The denormalized role of the user who submitted the feedback."
+        },
+        "userEmail": {
+            "type": "string",
+            "description": "The denormalized email of the user who submitted the feedback."
+        },
         "message": {
           "type": "string",
           "description": "The feedback message."
@@ -189,7 +201,7 @@
           "format": "date-time"
         }
       },
-      "required": ["userId", "message", "timestamp"]
+      "required": ["userId", "message", "timestamp", "userName", "userRole", "userEmail"]
     }
   },
   "auth": {

@@ -20,9 +20,28 @@ export default function UpcomingClasses({ schedule, isLoading }: UpcomingClasses
       .filter(c => {
         const endTimeString = c.time.split(/[-–]/)[1]?.trim();
         if (!endTimeString) return false;
-        const [endHour, endMinute] = endTimeString.split(':').map(Number);
+        
+        // Handle time formats like "11-2pm"
+        let endHour = parseInt(endTimeString.split(':')[0], 10);
+        const endMinute = parseInt(endTimeString.split(':')[1], 10) || 0;
+
+        if (endTimeString.toLowerCase().includes('pm') && endHour < 12) {
+          endHour += 12;
+        }
+
         const classEndTime = new Date();
-        classEndTime.setHours(endHour, endMinute || 0, 0, 0);
+        classEndTime.setHours(endHour, endMinute, 0, 0);
+
+        // A rough check for classes that cross from AM to PM like "11-2pm"
+        const startHour = parseInt(c.time.split(/[-–]/)[0]?.trim().split(':')[0]);
+        if (startHour >= 8 && startHour <= 11 && endHour >= 1 && endHour <= 5) {
+            if (classEndTime < now) {
+                const potentialEndTime = new Date();
+                potentialEndTime.setHours(endHour + 12, endMinute, 0, 0);
+                return now < potentialEndTime;
+            }
+        }
+        
         return now < classEndTime;
       })
       .sort((a, b) => {

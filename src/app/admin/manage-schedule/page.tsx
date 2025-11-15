@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { PlusCircle, Edit, Trash2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useCollection, useFirestore } from "@/firebase";
-import { collection, doc, deleteDoc } from "firebase/firestore";
+import { collection, doc, deleteDoc, query, where } from "firebase/firestore";
 import { Class as ClassEntry, UserProfile } from "@/lib/data-contracts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EditClassDialog } from "@/components/edit-class-dialog";
@@ -31,14 +31,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-
-// Mock data to prevent query errors in this environment
-const mockLecturers: UserProfile[] = [
-    { id: 'lecturer-dr-alan-grant', uid: 'lecturer-dr-alan-grant', name: 'Dr. Alan Grant', email: 'alan.grant@example.com', role: 'lecturer' },
-    { id: 'lecturer-dr-ian-malcolm', uid: 'lecturer-dr-ian-malcolm', name: 'Dr. Ian Malcolm', email: 'ian.malcolm@example.com', role: 'lecturer' },
-    { id: 'lecturer-dr-ellie-sattler', uid: 'lecturer-dr-ellie-sattler', name: 'Dr. Ellie Sattler', email: 'ellie.sattler@example.com', role: 'lecturer' },
-    { id: 'lecturer-dr-john-hammond', uid: 'lecturer-dr-john-hammond', name: 'Dr. John Hammond', email: 'john.hammond@example.com', role: 'lecturer' },
-];
 
 
 export default function ManageSchedulePage() {
@@ -55,7 +47,16 @@ export default function ManageSchedulePage() {
     return collection(firestore, "classes");
   }, [firestore]);
 
-  const { data: classes, isLoading } = useCollection<ClassEntry>(classesQuery);
+  const { data: classes, isLoading: classesLoading } = useCollection<ClassEntry>(classesQuery);
+
+  const lecturersQuery = useMemo(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'users'), where('role', '==', 'lecturer'));
+  }, [firestore]);
+
+  const { data: lecturers, isLoading: lecturersLoading } = useCollection<UserProfile>(lecturersQuery);
+
+  const isLoading = classesLoading || lecturersLoading;
 
   const handleAddNew = () => {
     setSelectedClass(null);
@@ -201,8 +202,8 @@ export default function ManageSchedulePage() {
         isOpen={isEditDialogOpen} 
         onClose={handleEditDialogClose} 
         classData={selectedClass}
-        lecturers={mockLecturers}
-        lecturersLoading={false}
+        lecturers={lecturers || []}
+        lecturersLoading={lecturersLoading}
       />
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>

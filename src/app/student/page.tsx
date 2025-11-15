@@ -11,6 +11,8 @@ import { useUserProfile } from "@/hooks/use-user-profile";
 import UpcomingClasses from "@/components/upcoming-classes";
 import PrintableReport from "@/components/printable-report";
 import UpcomingClassNotification from "@/components/upcoming-class-notification";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
 
 export default function StudentDashboard() {
   const { profile, isLoading: isProfileLoading } = useUserProfile();
@@ -36,6 +38,10 @@ export default function StudentDashboard() {
 
   const { data: schedule, isLoading: isScheduleLoading } = useCollection<TimetableEntry>(timetableQuery);
 
+  const handleDownload = () => {
+    window.print();
+  };
+
   const isLoading = isProfileLoading || isScheduleLoading;
   const welcomeTitle = isLoading || !profile ? "Welcome" : `Welcome, ${profile.name}`;
   const description = "Here is your class schedule for the week.";
@@ -54,6 +60,12 @@ export default function StudentDashboard() {
             />
         </PrintableReport>
         <div className="non-printable">
+            <div className="flex justify-end mb-4">
+              <Button onClick={handleDownload}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Download Timetable
+              </Button>
+            </div>
             <UpcomingClasses schedule={schedule || []} isLoading={isLoading} />
             <Timetable
             schedule={schedule || []}

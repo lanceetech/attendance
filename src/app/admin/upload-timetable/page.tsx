@@ -3,6 +3,7 @@
 
 import { useState, useRef } from 'react';
 import Papa from 'papaparse';
+import * as XLSX from 'xlsx';
 import { DashboardHeader } from '@/components/dashboard-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,6 +42,8 @@ const requiredFields = {
     time: 'Time',
 };
 
+type ParsedRow = Record<string, any>;
+
 export default function UploadTimetablePage() {
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -56,60 +59,90 @@ export default function UploadTimetablePage() {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
       const selectedFile = event.target.files[0];
-      if (selectedFile && selectedFile.type === 'text/csv') {
-        setFile(selectedFile);
-        
-        // Preview headers for mapping
-        Papa.parse(selectedFile, {
-            preview: 1,
-            complete: (results) => {
-                const headers = (results.data[0] as string[]).filter(Boolean);
-                setCsvHeaders(headers);
-                // Attempt to auto-map headers
-                const initialMapping: Record<string, string> = {};
-                Object.keys(requiredFields).forEach(field => {
-                    const foundHeader = headers.find(h => h.toLowerCase().replace(/\s/g, '') === field.toLowerCase());
-                    if (foundHeader) {
-                        initialMapping[field] = foundHeader;
-                    }
-                });
-                setColumnMapping(initialMapping);
-                setStep('map');
-            }
-        });
+      setFile(selectedFile);
 
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Invalid File Type',
-          description: 'Please select a valid CSV file.',
-        });
-        setFile(null);
-        setStep('select');
+      if (selectedFile) {
+        if (selectedFile.type === 'text/csv') {
+          previewAndMapHeaders(selectedFile, 'csv');
+        } else if (selectedFile.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+          previewAndMapHeaders(selectedFile, 'xlsx');
+        } else if (selectedFile.type === 'application/pdf') {
+            toast({
+              title: "PDF Upload (Coming Soon)",
+              description: "Parsing timetable data from PDFs is not yet supported. Please use CSV or XLSX.",
+            });
+            resetSelection();
+        } else {
+          toast({
+            variant: 'destructive',
+            title: 'Invalid File Type',
+            description: 'Please select a valid CSV or XLSX file.',
+          });
+          resetSelection();
+        }
       }
     }
   };
+  
+  const previewAndMapHeaders = (file: File, type: 'csv' | 'xlsx') => {
+      const onHeaders = (headers: string[]) => {
+          const filteredHeaders = headers.filter(Boolean);
+          setCsvHeaders(filteredHeaders);
+          // Attempt to auto-map headers
+          const initialMapping: Record<string, string> = {};
+          Object.keys(requiredFields).forEach(field => {
+              const foundHeader = filteredHeaders.find(h => 
+                  h.toLowerCase().replace(/\s/g, '') === field.toLowerCase() ||
+                  // Add more flexible matching, e.g. for the sample image
+                  h.toLowerCase().replace(/\s/g, '') === requiredFields[field as keyof typeof requiredFields].toLowerCase().replace(/\s/g, '')
+              );
+              if (foundHeader) {
+                  initialMapping[field] = foundHeader;
+              }
+          });
+          setColumnMapping(initialMapping);
+          setStep('map');
+      };
+
+      if (type === 'csv') {
+          Papa.parse(file, {
+              preview: 1,
+              complete: (results) => onHeaders(results.data[0] as string[]),
+          });
+      } else if (type === 'xlsx') {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+              const data = e.target?.result;
+              const workbook = XLSX.read(data, { type: 'array' });
+              const sheetName = workbook.SheetNames[0];
+              const worksheet = workbook.Sheets[sheetName];
+              const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+              onHeaders(json[0] as string[]);
+          };
+          reader.readAsArrayBuffer(file);
+      }
+  };
+
 
   const handleFileUpload = () => {
     if (!file) {
       toast({
         variant: 'destructive',
         title: 'No File Selected',
-        description: 'Please select a CSV file to upload.',
+        description: 'Please select a file to upload.',
       });
       return;
     }
 
-    if (Object.values(requiredFields).some(field => !columnMapping[field as keyof typeof requiredFields])) {
-        const missing = Object.entries(requiredFields).find(([key]) => !columnMapping[key]);
-        toast({
-            variant: 'destructive',
-            title: 'Column Mapping Incomplete',
-            description: `Please map the "${missing ? missing[1] : ''}" field.`,
-        });
-        return;
-    }
-
+    if (Object.keys(requiredFields).some(key => !columnMapping[key as keyof typeof columnMapping])) {
+      const missing = Object.entries(requiredFields).find(([key]) => !columnMapping[key]);
+      toast({
+          variant: 'destructive',
+          title: 'Column Mapping Incomplete',
+          description: `Please map the "${missing ? missing[1] : 'a required'}" field.`,
+      });
+      return;
+  }
 
     processData(file);
   }
@@ -118,27 +151,10 @@ export default function UploadTimetablePage() {
     processData(exampleCsv, true);
   }
 
-  const processData = (csvSource: string | File, seedCollections = false) => {
-    setIsProcessing(true);
+  const processData = (source: File | string, seedCollections = false) => {
+      setIsProcessing(true);
 
-    const parseConfig = {
-      header: true,
-      skipEmptyLines: true,
-      transformHeader: seedCollections ? undefined : (header: string) => {
-          const matchedKey = Object.keys(columnMapping).find(key => columnMapping[key] === header);
-          return matchedKey || header;
-      },
-      complete: async (results: Papa.ParseResult<any>) => {
-        if (results.errors.length) {
-          toast({
-            variant: 'destructive',
-            title: 'CSV Parsing Error',
-            description: results.errors.map(e => e.message).join(', '),
-          });
-          setIsProcessing(false);
-          return;
-        }
-
+      const onParsed = async (data: ParsedRow[]) => {
         if (!firestore) {
           toast({ variant: 'destructive', title: 'Firestore not available' });
           setIsProcessing(false);
@@ -146,16 +162,14 @@ export default function UploadTimetablePage() {
         }
 
         const batch = writeBatch(firestore);
-        const allRows = results.data;
-        
         let writeCount = 0;
-        const validRows = allRows.filter(row => row.unitCode && String(row.unitCode).trim() !== '');
+        const validRows = data.filter(row => row.unitCode && String(row.unitCode).trim() !== '');
 
         if (validRows.length === 0 && !seedCollections) {
             toast({
                 variant: 'destructive',
                 title: 'No Valid Data Found',
-                description: 'The CSV file does not contain any valid rows with a unitCode.',
+                description: 'The uploaded file does not contain any valid rows with a mapped unit code.',
             });
             setIsProcessing(false);
             return;
@@ -176,7 +190,7 @@ export default function UploadTimetablePage() {
             }
 
             for (const row of validRows) {
-                const [startHour, endHour] = String(row.time).split(' - ').map((t: string) => parseInt(t.split(':')[0]));
+                const [startHour, endHour] = String(row.time).split('-').map(t => parseInt(t, 10));
                 
                 if (isNaN(startHour) || isNaN(endHour)) {
                     console.warn("Skipping row with invalid time format:", row);
@@ -198,13 +212,15 @@ export default function UploadTimetablePage() {
                 const lecturerId = `lecturer-${String(row.lecturerName).replace(/\s+/g, '-').toLowerCase()}`;
                 const roomId = `room-${String(row.room).replace(/\s+/g, '-').toLowerCase()}`;
 
+                const timeString = `${String(startHour).padStart(2, '0')}:00 - ${String(endHour).padStart(2, '0')}:00`;
+
                 const classData = {
                   unitId: unitId,
                   lecturerId: lecturerId,
                   lecturerName: row.lecturerName,
                   roomId: roomId,
                   day: row.day,
-                  time: row.time,
+                  time: row.time || timeString,
                   unitCode: row.unitCode,
                   unitName: row.unitName,
                   room: row.room,
@@ -236,14 +252,7 @@ export default function UploadTimetablePage() {
                 title: 'Upload Successful',
                 description: `Successfully processed ${writeCount} documents.`,
             });
-            setFile(null);
-            if(fileInputRef.current) {
-              fileInputRef.current.value = '';
-            }
-            setStep('select');
-            setCsvHeaders([]);
-            setColumnMapping({});
-
+            resetSelection();
 
         } catch (error) {
             console.error(error);
@@ -264,17 +273,62 @@ export default function UploadTimetablePage() {
         } finally {
             setIsProcessing(false);
         }
-      },
-      error: (error: Error) => {
+      };
+      
+      const onError = (error: Error) => {
         toast({
             variant: 'destructive',
-            title: 'CSV Parsing Error',
+            title: 'File Parsing Error',
             description: error.message,
         });
         setIsProcessing(false);
+      };
+
+      if (typeof source === 'string') { // Seeding from example
+          Papa.parse(source, {
+              header: true,
+              skipEmptyLines: true,
+              complete: (results) => onParsed(results.data),
+              error: onError,
+          });
+      } else if (source instanceof File) { // Processing uploaded file
+          const fileType = source.type;
+          const reader = new FileReader();
+
+          const mappedAndParsed = (data: any[]) => {
+              const invertedMapping = Object.entries(columnMapping).reduce((acc, [key, val]) => ({...acc, [val]: key}), {} as Record<string, string>);
+              const renamedData = data.map(row => {
+                  const newRow: Record<string, any> = {};
+                  for (const header in row) {
+                      if (invertedMapping[header]) {
+                          newRow[invertedMapping[header]] = row[header];
+                      }
+                  }
+                  return newRow;
+              });
+              onParsed(renamedData);
+          }
+
+          if (fileType === 'text/csv') {
+              Papa.parse(source, {
+                  header: true,
+                  skipEmptyLines: true,
+                  complete: (results) => mappedAndParsed(results.data),
+                  error: onError
+              });
+          } else if (fileType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+              reader.onload = (e) => {
+                  const data = e.target?.result;
+                  const workbook = XLSX.read(data, { type: 'array' });
+                  const sheetName = workbook.SheetNames[0];
+                  const worksheet = workbook.Sheets[sheetName];
+                  const json = XLSX.utils.sheet_to_json(worksheet);
+                  mappedAndParsed(json);
+              };
+              reader.onerror = () => onError(new Error("Error reading XLSX file."));
+              reader.readAsArrayBuffer(source);
+          }
       }
-    };
-    Papa.parse(csvSource, parseConfig);
   };
 
   const resetSelection = () => {
@@ -296,7 +350,7 @@ export default function UploadTimetablePage() {
           <CardHeader>
             <CardTitle className="font-headline">Upload & Seed Data</CardTitle>
             <CardDescription>
-              Use the button below to seed the database with mock data, or upload a CSV file to add timetable entries.
+              Use the button below to seed the database with mock data, or upload a CSV/XLSX file to add timetable entries.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -304,7 +358,7 @@ export default function UploadTimetablePage() {
                 <h3 className="font-semibold text-foreground mb-2">Seed Database with Mock Data</h3>
                 <p className="text-sm text-muted-foreground mb-4">Click to populate Firestore with mock classrooms, course units, and a sample timetable.</p>
                  <Button onClick={handleSeedData} disabled={isProcessing}>
-                  {isProcessing ? (
+                  {isProcessing && step !== 'map' ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Processing...
@@ -321,14 +375,14 @@ export default function UploadTimetablePage() {
             <Separator />
 
             <div className="space-y-4">
-              <h3 className="font-semibold text-foreground">Upload Timetable CSV</h3>
+              <h3 className="font-semibold text-foreground">Upload Timetable File</h3>
               {step === 'select' && (
                 <div className="grid w-full max-w-sm items-center gap-1.5">
-                    <Label htmlFor="csv-file">1. Select CSV File</Label>
+                    <Label htmlFor="csv-file">1. Select File (.csv, .xlsx)</Label>
                     <Input 
                     id="csv-file" 
                     type="file" 
-                    accept=".csv" 
+                    accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/pdf" 
                     onChange={handleFileChange} 
                     ref={fileInputRef}
                     disabled={isProcessing} 
@@ -342,7 +396,7 @@ export default function UploadTimetablePage() {
                         <Wand2 className="h-4 w-4" />
                         <AlertTitle>Map Your Columns</AlertTitle>
                         <AlertDescription>
-                            Match the columns from your CSV file to the required timetable fields. We've tried to guess for you.
+                            Match the columns from your file to the required timetable fields. We've tried to guess for you.
                         </AlertDescription>
                     </Alert>
                     

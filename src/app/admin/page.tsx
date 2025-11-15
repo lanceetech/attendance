@@ -86,6 +86,9 @@ export default function AdminDashboard() {
                      <Button asChild variant="secondary">
                         <Link href="/admin/feedback">View Feedback</Link>
                     </Button>
+                     <Button asChild variant="secondary">
+                        <Link href="/admin/system-status">System Status</Link>
+                    </Button>
                 </CardContent>
             </Card>
             

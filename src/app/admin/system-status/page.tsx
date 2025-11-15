@@ -13,9 +13,11 @@ const services = [
 ];
 
 export default function SystemStatusPage() {
-  const [lastChecked, setLastChecked] = useState(new Date().toLocaleTimeString());
+  const [lastChecked, setLastChecked] = useState<string | null>(null);
 
   useEffect(() => {
+    // This effect runs only on the client
+    setLastChecked(new Date().toLocaleTimeString());
     const interval = setInterval(() => {
       setLastChecked(new Date().toLocaleTimeString());
     }, 5000);
@@ -46,7 +48,7 @@ export default function SystemStatusPage() {
               </div>
             ))}
              <div className="mt-4 text-center text-sm text-muted-foreground">
-                <p>Last checked: {lastChecked}</p>
+                {lastChecked ? <p>Last checked: {lastChecked}</p> : <p>Checking status...</p>}
             </div>
           </CardContent>
         </Card>

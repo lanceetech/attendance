@@ -86,6 +86,7 @@ export default function DashboardLayout({
   const currentMenuItems = menuItems[role];
 
   const handleLogout = async () => {
+    if (!auth) return;
     await signOut(auth);
     router.push("/");
   };

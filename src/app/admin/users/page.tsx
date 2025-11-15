@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Mail, RefreshCw, UserCircle, Download, Trash2 } from "lucide-react";
+import { Mail, RefreshCw, UserCircle, Download, Trash2, PlusCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, useCollection, useFirestore } from "@/firebase";
 import { sendPasswordResetEmail } from "firebase/auth";
@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { AddLecturerDialog } from '@/components/add-lecturer-dialog';
 
 export default function UserManagementPage() {
   const { toast } = useToast();
@@ -42,6 +43,7 @@ export default function UserManagementPage() {
   const firestore = useFirestore();
   const [resettingId, setResettingId] = useState<string | null>(null);
   const [userToDelete, setUserToDelete] = useState<UserProfile | null>(null);
+  const [isAddLecturerOpen, setIsAddLecturerOpen] = useState(false);
 
   const usersQuery = useMemo(() => {
     if (!firestore) return null;
@@ -157,10 +159,16 @@ export default function UserManagementPage() {
                     View all registered students and lecturers and manage their accounts.
                     </CardDescription>
                 </div>
-                 <Button onClick={handleDownload} variant="outline">
-                    <Download className="mr-2 h-4 w-4" />
-                    Download Report
-                </Button>
+                <div className="flex gap-2">
+                    <Button onClick={() => setIsAddLecturerOpen(true)}>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Add Lecturer
+                    </Button>
+                    <Button onClick={handleDownload} variant="outline">
+                        <Download className="mr-2 h-4 w-4" />
+                        Download Report
+                    </Button>
+                </div>
             </CardHeader>
             <CardContent>
                 <div className="rounded-lg border">
@@ -246,6 +254,7 @@ export default function UserManagementPage() {
             </CardContent>
             </Card>
         </div>
+        <AddLecturerDialog isOpen={isAddLecturerOpen} onClose={() => setIsAddLecturerOpen(false)} />
         <AlertDialog open={!!userToDelete} onOpenChange={(isOpen) => !isOpen && setUserToDelete(null)}>
             <AlertDialogContent>
                 <AlertDialogHeader>

@@ -8,6 +8,7 @@ import { AuthProvider } from '@/components/auth-provider';
 export const metadata: Metadata = {
   title: 'ClassSync: Smart Academic Scheduler & Attendance System',
   description: 'Manage and resolve timetable conflicts, track attendance with QR codes, and monitor classroom status.',
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({

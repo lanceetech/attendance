@@ -1,0 +1,21 @@
+{
+  "name": "ClassSync",
+  "short_name": "ClassSync",
+  "description": "Smart Academic Scheduler & Attendance System",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0E5A8A",
+  "icons": [
+    {
+      "src": "/images/umma.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    },
+    {
+      "src": "/images/umma.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}

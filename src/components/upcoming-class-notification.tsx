@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { Class as TimetableEntry } from '@/lib/data-contracts';
 import { differenceInMinutes } from 'date-fns';
 import { BellRing } from 'lucide-react';
+import { useUserProfile } from '@/hooks/use-user-profile';
 
 interface UpcomingClassNotificationProps {
   schedule: TimetableEntry[];
@@ -16,10 +17,15 @@ const SESSION_STORAGE_KEY = 'classSyncUpcomingNotificationShown';
 
 export default function UpcomingClassNotification({ schedule }: UpcomingClassNotificationProps) {
   const { toast } = useToast();
+  const { settings, isLoading: areSettingsLoading } = useUserProfile();
   const notifiedRef = useRef(false);
 
   useEffect(() => {
-    // Check if a notification has already been shown in this session
+    // Wait for settings to load and check if reminders are enabled.
+    if (areSettingsLoading || !settings?.lessonReminders) {
+      return;
+    }
+
     const hasBeenNotifiedInSession = sessionStorage.getItem(SESSION_STORAGE_KEY);
     if (!schedule || schedule.length === 0 || notifiedRef.current || hasBeenNotifiedInSession) {
       return;
@@ -52,7 +58,7 @@ export default function UpcomingClassNotification({ schedule }: UpcomingClassNot
         duration: 10000, // Keep the toast visible for 10 seconds
       });
     }
-  }, [schedule, toast]);
+  }, [schedule, toast, settings, areSettingsLoading]);
 
   // This component does not render anything to the DOM
   return null;

@@ -30,6 +30,7 @@ import {
   FileUp,
   Download,
   Users,
+  Settings,
 } from "lucide-react";
 import Logo from "./logo";
 import { Button } from "./ui/button";
@@ -52,10 +53,12 @@ const menuItems = {
     { href: "/lecturer", label: "My Timetable", icon: Calendar },
     { href: "/lecturer/attendance", label: "Attendance", icon: QrCode },
     { href: "/lecturer/feedback", label: "Report Issue", icon: Send },
+    { href: "/lecturer/settings", label: "Settings", icon: Settings },
   ],
   student: [
     { href: "/student", label: "My Timetable", icon: Calendar },
     { href: "/student/feedback", label: "Report Issue", icon: Send },
+    { href: "/student/settings", label: "Settings", icon: Settings },
   ],
 };
 

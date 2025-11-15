@@ -36,6 +36,27 @@
       },
       "required": ["id", "uid", "name", "role", "email"]
     },
+    "UserSettings": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User Settings",
+      "type": "object",
+      "description": "Stores user-specific notification and feature settings.",
+      "properties": {
+        "lessonReminders": {
+          "type": "boolean",
+          "description": "Enable or disable push notifications for upcoming lessons."
+        },
+        "timetableChanges": {
+          "type": "boolean",
+          "description": "Enable or disable notifications for changes to the timetable."
+        },
+        "emailNotifications": {
+          "type": "boolean",
+          "description": "Enable or disable email notifications."
+        }
+      },
+      "required": ["lessonReminders", "timetableChanges", "emailNotifications"]
+    },
     "Unit": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Unit",
@@ -180,6 +201,10 @@
     "/users/{userId}": {
       "schema": { "$ref": "#/entities/User" },
       "description": "Stores public profile information for all users. The document ID is the user's Firebase Auth UID."
+    },
+    "/users/{userId}/settings/preferences": {
+      "schema": { "$ref": "#/entities/UserSettings" },
+      "description": "Stores notification settings for a specific user. The document ID is always 'preferences'."
     },
     "/units/{unitId}": {
       "schema": { "$ref": "#/entities/Unit" },

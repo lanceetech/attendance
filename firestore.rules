@@ -27,6 +27,11 @@ service cloud.firestore {
       
       // Only an admin can delete users. A user can delete their own profile.
       allow delete: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+
+      match /settings/preferences {
+        // A user can read and write to their own settings document.
+        allow read, write: if isSignedIn() && request.auth.uid == userId;
+      }
     }
 
     match /units/{unitId} {

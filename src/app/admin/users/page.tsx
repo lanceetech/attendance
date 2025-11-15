@@ -202,7 +202,9 @@ export default function UserManagementPage() {
                             <div className="flex items-center gap-3">
                               <Avatar className="h-9 w-9">
                                 <AvatarImage src={PlaceHolderImages.find(img => img.id === user.avatar)?.imageUrl} alt={user.name} />
-                                <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                                <AvatarFallback>
+                                    <UserCircle className="h-5 w-5 text-muted-foreground" />
+                                </AvatarFallback>
                               </Avatar>
                             <div>
                                 <div className="font-medium">{user.name}</div>

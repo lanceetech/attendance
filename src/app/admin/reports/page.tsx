@@ -4,40 +4,31 @@
 import { DashboardHeader } from "@/components/dashboard-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, Calendar, DoorOpen, Download } from "lucide-react";
+import { Users, Calendar, DoorOpen, ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function ReportsPage() {
   const router = useRouter();
 
-  const handleDownload = (path: string) => {
-    // Navigate to the page and trigger print dialog
-    const newWindow = window.open(path, '_blank');
-    newWindow?.addEventListener('load', () => {
-        setTimeout(() => {
-            newWindow?.print();
-        }, 500); // Small delay to ensure content is rendered
-    });
-  };
-
   const reports = [
     {
       title: "User List Report",
-      description: "Generate a PDF list of all registered students and lecturers.",
+      description: "View and download a list of all registered students and lecturers.",
       icon: Users,
-      action: () => handleDownload('/admin/users'),
+      href: '/admin/users',
     },
     {
       title: "Full Timetable Report",
-      description: "Download a PDF of the complete, denormalized class schedule.",
+      description: "View and download the complete class schedule.",
       icon: Calendar,
-      action: () => handleDownload('/admin/manage-schedule'), // This page has no printable report yet. Good future enhancement.
+      href: '/admin/manage-schedule',
     },
     {
       title: "Classroom Status Report",
-      description: "Generate a current status report for all available classrooms.",
+      description: "View and download a current status report for all classrooms.",
       icon: DoorOpen,
-      action: () => handleDownload('/admin/classrooms'), // This page has no printable report yet. Good future enhancement.
+      href: '/admin/classrooms',
     },
   ];
 
@@ -49,7 +40,7 @@ export default function ReportsPage() {
             <CardHeader>
                 <CardTitle className="font-headline">Report Generation</CardTitle>
                 <CardDescription>
-                Select a report to generate and download as a PDF document.
+                Select a report to view and download as a printable document.
                 </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -63,9 +54,10 @@ export default function ReportsPage() {
                     </CardHeader>
                     <CardContent>
                         <p className="text-sm text-muted-foreground mb-4">{report.description}</p>
-                        <Button onClick={report.action}>
-                            <Download className="mr-2 h-4 w-4" />
-                            Generate & Download
+                        <Button asChild>
+                           <Link href={report.href}>
+                             View Report <ArrowRight className="ml-2 h-4 w-4" />
+                           </Link>
                         </Button>
                     </CardContent>
                 </Card>

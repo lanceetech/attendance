@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Edit, Trash2 } from "lucide-react";
+import { PlusCircle, Edit, Trash2, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCollection, useFirestore } from '@/firebase';
 import { collection, doc, deleteDoc } from 'firebase/firestore';
@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
+import PrintableReport from '@/components/printable-report';
 
 export default function ClassroomsPage() {
   const firestore = useFirestore();
@@ -92,107 +93,140 @@ export default function ClassroomsPage() {
     setSelectedRoom(null);
   };
 
+  const handleDownload = () => {
+    window.print();
+  };
+
   return (
     <>
       <DashboardHeader title="Manage Classrooms" />
       <main className="p-4 sm:p-6">
-        <Card>
-          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <CardTitle className="font-headline">Classroom Overview</CardTitle>
-              <CardDescription>
-                View, add, or edit all available classrooms.
-              </CardDescription>
-            </div>
-            <Button onClick={handleAddNew}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Add New Classroom
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-                <div className="space-y-4">
-                    {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-20" />)}
-                </div>
-            ) : isMobile ? (
-                <div className="space-y-4">
-                    {classrooms?.map(room => (
-                        <div key={room.id} className="rounded-lg border bg-card text-card-foreground shadow-sm p-4">
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <p className="font-bold text-primary">{room.name}</p>
-                                    <p className="text-sm text-muted-foreground">Capacity: {room.capacity}</p>
-                                    <Badge
-                                        className={cn(
-                                            "mt-2 border-transparent",
-                                            room.status === "Available"
-                                            ? "bg-green-100 text-green-800 hover:bg-green-100/80"
-                                            : room.status === "In Use"
-                                            ? "bg-red-100 text-red-800 hover:bg-red-100/80"
-                                            : "bg-yellow-100 text-yellow-800 hover:bg-yellow-100/80"
-                                        )}
-                                    >
-                                        {room.status}
-                                    </Badge>
-                                </div>
-                                <div className="flex gap-2">
-                                    <Button variant="outline" size="icon" onClick={() => handleEdit(room)}>
-                                        <Edit className="h-4 w-4"/>
-                                        <span className="sr-only">Edit</span>
-                                    </Button>
-                                    <Button variant="destructive" size="icon" onClick={() => handleDelete(room)}>
-                                        <Trash2 className="h-4 w-4"/>
-                                        <span className="sr-only">Delete</span>
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            ) : (
-                <div className="rounded-lg border">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Room Name</TableHead>
-                                <TableHead>Capacity</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {classrooms?.map((room) => (
-                            <TableRow key={room.id}>
-                                <TableCell className="font-medium">{room.name}</TableCell>
-                                <TableCell>{room.capacity}</TableCell>
-                                <TableCell>
-                                <Badge
-                                    className={cn(
-                                        "border-transparent",
-                                        room.status === "Available"
-                                        ? "bg-green-100 text-green-800 hover:bg-green-100/80"
-                                        : room.status === "In Use"
-                                        ? "bg-red-100 text-red-800 hover:bg-red-100/80"
-                                        : "bg-yellow-100 text-yellow-800 hover:bg-yellow-100/80"
-                                    )}
-                                >
-                                    {room.status}
-                                </Badge>
-                                </TableCell>
-                                <TableCell className="text-right">
-                                    <div className="flex gap-2 justify-end">
-                                        <Button variant="outline" size="sm" onClick={() => handleEdit(room)}>Edit</Button>
-                                        <Button variant="destructive" size="sm" onClick={() => handleDelete(room)}>Delete</Button>
-                                    </div>
-                                </TableCell>
-                            </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
-            )}
-          </CardContent>
-        </Card>
+        <PrintableReport title="Classroom Status Report">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Room Name</TableHead>
+                <TableHead>Capacity</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {classrooms?.map((room) => (
+                <TableRow key={room.id}>
+                  <TableCell className="font-medium">{room.name}</TableCell>
+                  <TableCell>{room.capacity}</TableCell>
+                  <TableCell>{room.status}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </PrintableReport>
+        
+        <div className="non-printable">
+          <Card>
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <CardTitle className="font-headline">Classroom Overview</CardTitle>
+                <CardDescription>
+                  View, add, or edit all available classrooms.
+                </CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button onClick={handleAddNew}>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Add New Classroom
+                </Button>
+                <Button onClick={handleDownload} variant="outline">
+                    <Download className="mr-2 h-4 w-4" />
+                    Download Report
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                  <div className="space-y-4">
+                      {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-20" />)}
+                  </div>
+              ) : isMobile ? (
+                  <div className="space-y-4">
+                      {classrooms?.map(room => (
+                          <div key={room.id} className="rounded-lg border bg-card text-card-foreground shadow-sm p-4">
+                              <div className="flex justify-between items-start">
+                                  <div>
+                                      <p className="font-bold text-primary">{room.name}</p>
+                                      <p className="text-sm text-muted-foreground">Capacity: {room.capacity}</p>
+                                      <Badge
+                                          className={cn(
+                                              "mt-2 border-transparent",
+                                              room.status === "Available"
+                                              ? "bg-green-100 text-green-800 hover:bg-green-100/80"
+                                              : room.status === "In Use"
+                                              ? "bg-red-100 text-red-800 hover:bg-red-100/80"
+                                              : "bg-yellow-100 text-yellow-800 hover:bg-yellow-100/80"
+                                          )}
+                                      >
+                                          {room.status}
+                                      </Badge>
+                                  </div>
+                                  <div className="flex gap-2">
+                                      <Button variant="outline" size="icon" onClick={() => handleEdit(room)}>
+                                          <Edit className="h-4 w-4"/>
+                                          <span className="sr-only">Edit</span>
+                                      </Button>
+                                      <Button variant="destructive" size="icon" onClick={() => handleDelete(room)}>
+                                          <Trash2 className="h-4 w-4"/>
+                                          <span className="sr-only">Delete</span>
+                                      </Button>
+                                  </div>
+                              </div>
+                          </div>
+                      ))}
+                  </div>
+              ) : (
+                  <div className="rounded-lg border">
+                      <Table>
+                          <TableHeader>
+                              <TableRow>
+                                  <TableHead>Room Name</TableHead>
+                                  <TableHead>Capacity</TableHead>
+                                  <TableHead>Status</TableHead>
+                                  <TableHead className="text-right">Actions</TableHead>
+                              </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                              {classrooms?.map((room) => (
+                              <TableRow key={room.id}>
+                                  <TableCell className="font-medium">{room.name}</TableCell>
+                                  <TableCell>{room.capacity}</TableCell>
+                                  <TableCell>
+                                  <Badge
+                                      className={cn(
+                                          "border-transparent",
+                                          room.status === "Available"
+                                          ? "bg-green-100 text-green-800 hover:bg-green-100/80"
+                                          : room.status === "In Use"
+                                          ? "bg-red-100 text-red-800 hover:bg-red-100/80"
+                                          : "bg-yellow-100 text-yellow-800 hover:bg-yellow-100/80"
+                                      )}
+                                  >
+                                      {room.status}
+                                  </Badge>
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                      <div className="flex gap-2 justify-end">
+                                          <Button variant="outline" size="sm" onClick={() => handleEdit(room)}>Edit</Button>
+                                          <Button variant="destructive" size="sm" onClick={() => handleDelete(room)}>Delete</Button>
+                                      </div>
+                                  </TableCell>
+                              </TableRow>
+                              ))}
+                          </TableBody>
+                      </Table>
+                  </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </main>
       <EditClassroomDialog
         isOpen={isEditDialogOpen}

@@ -28,7 +28,11 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const exampleCsv = `CODE,TITLE,LECTURER,DAY,TIME,VENUE
-CS101,Intro to CS,Dr. Alan Grant,Monday,09:00 - 11:00,Room 101`;
+CMS 2111,"Communication Skills","Dr Mercy",Wednesday,"8-11am",LH123
+CSC 2111,"Introduction to Computer Systems","Mariam Heroe",Tuesday,"8-11am",Lab 1
+CSC 2112,"Intro to Programming and Algorithms","Jeff Lusweti",Wednesday,"11-2pm",Lab 1
+IAL 2111,"Introduction to Arabic Language","Dr. Mohamed Dek",Monday,"2-5pm",LH124
+MTH 2111,"Discrete Mathematics","Edwin Omondi",Wednesday,"2-5pm",LH124`;
 
 const columnFields: Record<string, { label: string, required: boolean }> = {
     CODE: { label: 'Unit Code', required: true },
@@ -481,3 +485,5 @@ export default function UploadTimetablePage() {
     </>
   );
 }
+
+    

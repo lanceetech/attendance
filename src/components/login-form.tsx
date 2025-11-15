@@ -41,10 +41,8 @@ export default function LoginForm() {
     signInWithEmailAndPassword(auth, values.email, values.password)
       .catch((error) => {
         let description = 'An unknown error occurred.';
-        if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
-          description = 'Invalid email or password. Please try again.';
-        } else if (error.code === 'auth/user-not-found') {
-          description = 'This account does not exist. Please create an account.';
+        if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+          description = 'Invalid email or password. Please try again or create an account.';
         }
         toast({ variant: 'destructive', title: 'Authentication Failed', description });
       })
@@ -102,3 +100,5 @@ export default function LoginForm() {
     </div>
   );
 }
+
+    

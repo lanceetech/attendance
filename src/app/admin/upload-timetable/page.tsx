@@ -27,20 +27,27 @@ import {
 } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-const exampleCsv = `unitCode,unitName,lecturerName,room,day,time,studentEmails
-CS101,Introduction to Computer Science,Dr. Alan Grant,Room 101,Monday,08:00 - 10:00,student1@example.com;student2@example.com
-MAT203,Advanced Calculus,Dr. Ian Malcolm,Room 102,Tuesday,10:00 - 12:00,student1@example.com;student3@example.com
-PHY301,Quantum Physics,Dr. Ellie Sattler,Lab A,Wednesday,11:00 - 13:00,student2@example.com
-ENG201,Shakespeare,Dr. John Hammond,LT-02,Thursday,14:00 - 16:00,student3@example.com`;
+const exampleCsv = `CODE,TITLE,LECTURER,DAY,TIME,VENUE
+CMS 2111,Communication Skills,Dr Mercy,Wednesday,8-11am,
+CSC 2111,Introduction to Computer Systems,Mariam Heroe,Tuesday,8-11am,Lab 1
+CSC 2112,Introduction to Programming and Algorithms,Jeff Lusweti,Wednesday,11-2pm,Lab 1
+CSC 2113,Computer Organization and Architecture,Rehema Wampy,Tuesday,11-2pm,LH126
+IAL 2111,Introduction to Arabic Language,Dr. Mohamed Dek,Monday,2-5pm,LH124
+MTH 2111,Discrete Mathematics,Edwin Omondi,Wednesday,2-5pm,LH124
+MTH 2112,Mathematics for Science,Daniel Mbithi,Thursday,2-5am,LH127
+CMN 2112,Life Skills,Maguta,Monday,11-2pm,VCDL4
+IAL 2111,Arabic language I,Aluoch Rays,Tuesday,11-2pm,LH126
+CSC 2121,Electronics I,,Friday,8-11am,LH125
+CSC 2122,Systems Analysis and Design,Rehema Wampy,Tuesday,2-5pm,LH125
+CSC 2123,Object Oriented Programming I,Jeff Lusweti,Wednesday,2-5pm,Lab 1`;
 
-// Expanded to include optional student mapping
 const columnFields: Record<string, { label: string, required: boolean }> = {
-    unitCode: { label: 'Unit Code', required: true },
-    unitName: { label: 'Unit Name', required: true },
-    lecturerName: { label: 'Lecturer Name', required: true },
-    room: { label: 'Room', required: true },
-    day: { label: 'Day', required: true },
-    time: { label: 'Time', required: true },
+    CODE: { label: 'Unit Code', required: true },
+    TITLE: { label: 'Unit Name', required: true },
+    LECTURER: { label: 'Lecturer Name', required: true },
+    VENUE: { label: 'Room', required: true },
+    DAY: { label: 'Day', required: true },
+    TIME: { label: 'Time', required: true },
     studentEmails: { label: 'Student Emails (optional)', required: false },
 };
 
@@ -181,7 +188,7 @@ export default function UploadTimetablePage() {
         const batch = writeBatch(firestore);
         let writeCount = 0;
         const validRows = data.filter(row => {
-            const mappedUnitCodeKey = columnMapping['unitCode'];
+            const mappedUnitCodeKey = columnMapping['CODE'] || 'CODE';
             return row[mappedUnitCodeKey] && String(row[mappedUnitCodeKey]).trim() !== '';
         });
 
@@ -195,7 +202,6 @@ export default function UploadTimetablePage() {
             return;
         }
         
-        // This helper maps the original header from the file to our standard field key
         const getRowValue = (row: ParsedRow, fieldKey: string) => {
             const header = columnMapping[fieldKey];
             return header ? row[header] : undefined;
@@ -216,12 +222,26 @@ export default function UploadTimetablePage() {
             }
 
             for (const row of validRows) {
-                const timeValue = String(getRowValue(row, 'time') || '');
-                const [startHour, endHour] = timeValue.split(/[-–]/).map(t => parseInt(t, 10));
+                const timeValue = String(getRowValue(row, 'TIME') || getRowValue(row, 'time') || '');
+                const [startTimeStr, endTimeStr] = timeValue.replace(/am|pm/g, '').split(/[-–]/);
+
+                let startHour = parseInt(startTimeStr, 10);
+                let endHour = parseInt(endTimeStr, 10);
                 
+                if (timeValue.toLowerCase().includes('pm') && endHour < 12) {
+                    endHour += 12;
+                }
+                if (endHour < startHour) { // Handles cases like 11-2pm
+                    endHour += 12;
+                }
+                 if (startHour < 8) { // Handles 2-5am vs 2-5pm
+                    startHour += 12;
+                }
+
+
                 if (isNaN(startHour) || isNaN(endHour)) {
                     console.warn("Skipping row with invalid time format:", row);
-                    continue; // Skip this row
+                    continue; 
                 }
 
                 const baseDate = new Date();
@@ -235,13 +255,18 @@ export default function UploadTimetablePage() {
                 const endTime = new Date(baseDate);
                 endTime.setHours(endHour);
 
-                const unitCode = getRowValue(row, 'unitCode');
-                const lecturerName = getRowValue(row, 'lecturerName');
-                const roomName = getRowValue(row, 'room');
-                const unitName = getRowValue(row, 'unitName');
-                const day = getRowValue(row, 'day');
+                const unitCode = getRowValue(row, 'CODE') || getRowValue(row, 'code');
+                const lecturerName = getRowValue(row, 'LECTURER') || getRowValue(row, 'lecturer');
+                const roomName = getRowValue(row, 'VENUE') || getRowValue(row, 'venue');
+                const unitName = getRowValue(row, 'TITLE') || getRowValue(row, 'title');
+                const day = getRowValue(row, 'DAY') || getRowValue(row, 'day');
 
-                const unitId = `unit-${String(unitCode).toLowerCase()}`;
+                if (!unitCode || !lecturerName || !roomName || !unitName || !day) {
+                    console.warn("Skipping row with missing required fields:", row);
+                    continue;
+                }
+
+                const unitId = `unit-${String(unitCode).toLowerCase().replace(/\s/g, '-')}`;
                 const lecturerId = `lecturer-${String(lecturerName).replace(/\s+/g, '-').toLowerCase()}`;
 
                 const timeString = `${String(startHour).padStart(2, '0')}:00 - ${String(endHour).padStart(2, '0')}:00`;
@@ -317,15 +342,14 @@ export default function UploadTimetablePage() {
         setIsProcessing(false);
       };
 
-      if (typeof source === 'string') { // Seeding from example
+      if (typeof source === 'string') {
           Papa.parse(source, {
               header: true,
               skipEmptyLines: true,
               complete: (results) => onParsed(results.data),
               error: onError,
           });
-      } else if (source instanceof File) { // Processing uploaded file
-          const reader = new FileReader();
+      } else if (source instanceof File) {
           if (source.type === 'text/csv' || source.name.endsWith('.csv')) {
               Papa.parse(source, {
                   header: true,
@@ -334,6 +358,7 @@ export default function UploadTimetablePage() {
                   error: onError
               });
           } else if (source.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || source.name.endsWith('.xlsx')) {
+              const reader = new FileReader();
               reader.onload = (e) => {
                   const data = e.target?.result;
                   const workbook = XLSX.read(data, { type: 'array' });

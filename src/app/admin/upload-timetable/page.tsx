@@ -37,9 +37,21 @@ MTH 2111,Discrete Mathematics,Edwin Omondi,Wednesday,2-5pm,LH124
 MTH 2112,Mathematics for Science,Daniel Mbithi,Thursday,2-5am,LH127
 CMN 2112,Life Skills,Maguta,Monday,11-2pm,VCDL4
 IAL 2111,Arabic language I,Aluoch Rays,Tuesday,11-2pm,LH126
-CSC 2121,Electronics I,,Friday,8-11am,LH125
+CSC 2121,Electronics I,Aluoch Rays,Friday,8-11am,LH125
 CSC 2122,Systems Analysis and Design,Rehema Wampy,Tuesday,2-5pm,LH125
-CSC 2123,Object Oriented Programming I,Jeff Lusweti,Wednesday,2-5pm,Lab 1`;
+CSC 2123,Object Oriented Programming I,Jeff Lusweti,Wednesday,2-5pm,Lab 1
+CSC 2124,Operating Systems,Dr. Muchelule,Thursday,2-5pm,LH129
+CSC 2125,Data Communication and Networks,Mariam Heroe,Monday,11-2pm,Lab 1
+MTH 2121,Linear Algebra,Daniel Mbithi,Monday,2-5pm,LH126
+MTH 2122,Calculus I,Edwin Omondi,Wednesday,8-11am,LH127
+CSC 2213,Data Structures and Algorithms,Jeff Lusweti,Thursday,8-11am,Lab1
+CSC 2214,Object Oriented Programming II,Patrick Alianda,Wednesday,2-5pm,Lab2
+CSC 2215,Distributed Systems,Dr. Muchelule Yusuf,Wednesday,8-11am,LH126
+CSC 2216,Database Systems,Patrick Alianda,Monday,8-11am,Lab2
+IIS 2211,Introductio to Islamic Studies,,Thursday,11-2pm,VCDL 2
+MTH 2211,Calculus II,Edwin Omondi,Wednesday,11-2pm,LH127
+MTH 2212,Probability and Statistics,Daniel Mbithi,Tuesday,8-11am,LH125
+CSC 2121,Electronics I,Aluoch Rays,Friday,8-11am,LH125`;
 
 const columnFields: Record<string, { label: string, required: boolean }> = {
     CODE: { label: 'Unit Code', required: true },

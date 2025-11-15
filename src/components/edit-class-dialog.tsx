@@ -40,10 +40,21 @@ const formSchema = z.object({
   lecturerId: z.string().min(1, 'Please select a lecturer.'),
   roomId: z.string().min(1, 'Please select a room.'),
   day: z.string().min(1, 'Please select a day.'),
-  time: z.string().min(1, 'Please enter a time slot (e.g., 09:00 - 11:00).'),
+  time: z.string().min(1, 'Please select a time slot.'),
 });
 
 const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+const timeSlots = [
+    "08:00 - 10:00",
+    "08:00 - 11:00",
+    "10:00 - 12:00",
+    "11:00 - 13:00",
+    "11:00 - 14:00",
+    "13:00 - 15:00",
+    "14:00 - 16:00",
+    "14:00 - 17:00",
+    "16:00 - 18:00"
+];
 
 interface EditClassDialogProps {
   isOpen: boolean;
@@ -99,7 +110,7 @@ export function EditClassDialog({ isOpen, onClose, classData, lecturers, lecture
     if (!firestore) return;
     
     const selectedUnit = units?.find(u => u.id === values.unitId);
-    const selectedLecturer = lecturers?.find(l => l.id === values.lecturerId);
+    const selectedLecturer = lecturers?.find(l => l.uid === values.lecturerId);
     const selectedRoom = rooms?.find(r => r.id === values.roomId);
 
     if (!selectedUnit || !selectedLecturer || !selectedRoom) {
@@ -111,7 +122,10 @@ export function EditClassDialog({ isOpen, onClose, classData, lecturers, lecture
       return;
     }
 
-    const [startHour, endHour] = values.time.split(' - ').map((t: string) => parseInt(t.split(':')[0]));
+    const [startStr, endStr] = values.time.split(' - ');
+    const [startHour] = startStr.split(':').map(Number);
+    const [endHour] = endStr.split(':').map(Number);
+
     const baseDate = new Date();
     baseDate.setMinutes(0);
     baseDate.setSeconds(0);
@@ -126,7 +140,7 @@ export function EditClassDialog({ isOpen, onClose, classData, lecturers, lecture
       unitId: selectedUnit.id,
       unitCode: selectedUnit.code,
       unitName: selectedUnit.name,
-      lecturerId: selectedLecturer.id,
+      lecturerId: selectedLecturer.uid,
       lecturerName: selectedLecturer.name,
       roomId: selectedRoom.id,
       room: selectedRoom.name,
@@ -217,7 +231,7 @@ export function EditClassDialog({ isOpen, onClose, classData, lecturers, lecture
                     </FormControl>
                     <SelectContent>
                       {lecturers?.map((lecturer) => (
-                        <SelectItem key={lecturer.id} value={lecturer.id}>
+                        <SelectItem key={lecturer.uid} value={lecturer.uid}>
                           {lecturer.name}
                         </SelectItem>
                       ))}
@@ -281,9 +295,20 @@ export function EditClassDialog({ isOpen, onClose, classData, lecturers, lecture
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Time Slot</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., 09:00 - 11:00" {...field} />
-                  </FormControl>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a time slot" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {timeSlots.map((slot) => (
+                        <SelectItem key={slot} value={slot}>
+                          {slot}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

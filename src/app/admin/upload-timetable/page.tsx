@@ -31,16 +31,20 @@ const exampleCsv = `unitCode,unitName,lecturerName,room,day,time,studentEmails
 CS101,Introduction to Computer Science,Dr. Alan Grant,Room 101,Monday,08:00 - 10:00,student1@example.com;student2@example.com
 MAT203,Advanced Calculus,Dr. Ian Malcolm,Room 102,Tuesday,10:00 - 12:00,student1@example.com;student3@example.com
 PHY301,Quantum Physics,Dr. Ellie Sattler,Lab A,Wednesday,11:00 - 13:00,student2@example.com
-ENG201,Shakespeare,Dr. John Hammond,LT-02,Monday,14:00 - 16:00,student3@example.com`;
+ENG201,Shakespeare,Dr. John Hammond,LT-02,Thursday,14:00 - 16:00,student3@example.com`;
 
-const requiredFields = {
-    unitCode: 'Unit Code',
-    unitName: 'Unit Name',
-    lecturerName: 'Lecturer Name',
-    room: 'Room',
-    day: 'Day',
-    time: 'Time',
+// Expanded to include optional student mapping
+const columnFields: Record<string, { label: string, required: boolean }> = {
+    unitCode: { label: 'Unit Code', required: true },
+    unitName: { label: 'Unit Name', required: true },
+    lecturerName: { label: 'Lecturer Name', required: true },
+    room: { label: 'Room', required: true },
+    day: { label: 'Day', required: true },
+    time: { label: 'Time', required: true },
+    studentEmails: { label: 'Student Emails (optional)', required: false },
 };
+
+const requiredFields = Object.fromEntries(Object.entries(columnFields).filter(([, val]) => val.required));
 
 type ParsedRow = Record<string, any>;
 
@@ -51,7 +55,7 @@ export default function UploadTimetablePage() {
   const firestore = useFirestore();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
+  const [fileHeaders, setFileHeaders] = useState<string[]>([]);
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
   const [step, setStep] = useState<'select' | 'map' | 'upload'>('select');
 
@@ -62,9 +66,9 @@ export default function UploadTimetablePage() {
       setFile(selectedFile);
 
       if (selectedFile) {
-        if (selectedFile.type === 'text/csv') {
+        if (selectedFile.type === 'text/csv' || selectedFile.name.endsWith('.csv')) {
           previewAndMapHeaders(selectedFile, 'csv');
-        } else if (selectedFile.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+        } else if (selectedFile.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || selectedFile.name.endsWith('.xlsx')) {
           previewAndMapHeaders(selectedFile, 'xlsx');
         } else if (selectedFile.type === 'application/pdf') {
             toast({
@@ -87,19 +91,20 @@ export default function UploadTimetablePage() {
   const previewAndMapHeaders = (file: File, type: 'csv' | 'xlsx') => {
       const onHeaders = (headers: string[]) => {
           const filteredHeaders = headers.filter(Boolean);
-          setCsvHeaders(filteredHeaders);
-          // Attempt to auto-map headers
+          setFileHeaders(filteredHeaders);
+          
           const initialMapping: Record<string, string> = {};
-          Object.keys(requiredFields).forEach(field => {
-              const foundHeader = filteredHeaders.find(h => 
-                  h.toLowerCase().replace(/\s/g, '') === field.toLowerCase() ||
-                  // Add more flexible matching, e.g. for the sample image
-                  h.toLowerCase().replace(/\s/g, '') === requiredFields[field as keyof typeof requiredFields].toLowerCase().replace(/\s/g, '')
-              );
+          Object.keys(columnFields).forEach(fieldKey => {
+              const fieldLabel = columnFields[fieldKey].label.toLowerCase().replace(/ \(.+\)/, '').replace(/\s/g, '');
+              const foundHeader = filteredHeaders.find(h => {
+                  const normalizedHeader = h.toLowerCase().replace(/\s/g, '');
+                  return normalizedHeader === fieldKey.toLowerCase() || normalizedHeader === fieldLabel;
+              });
               if (foundHeader) {
-                  initialMapping[field] = foundHeader;
+                  initialMapping[fieldKey] = foundHeader;
               }
           });
+
           setColumnMapping(initialMapping);
           setStep('map');
       };
@@ -108,16 +113,27 @@ export default function UploadTimetablePage() {
           Papa.parse(file, {
               preview: 1,
               complete: (results) => onHeaders(results.data[0] as string[]),
+              error: () => toast({ variant: 'destructive', title: 'Error parsing CSV headers.'})
           });
       } else if (type === 'xlsx') {
           const reader = new FileReader();
           reader.onload = (e) => {
-              const data = e.target?.result;
-              const workbook = XLSX.read(data, { type: 'array' });
-              const sheetName = workbook.SheetNames[0];
-              const worksheet = workbook.Sheets[sheetName];
-              const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-              onHeaders(json[0] as string[]);
+              try {
+                const data = e.target?.result;
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const json: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                if (json.length > 0) {
+                    onHeaders(json[0].map(String));
+                } else {
+                    toast({ variant: 'destructive', title: 'Empty XLSX file', description: 'The selected file appears to be empty.' });
+                    resetSelection();
+                }
+              } catch (error) {
+                toast({ variant: 'destructive', title: 'Error reading XLSX file.' });
+                resetSelection();
+              }
           };
           reader.readAsArrayBuffer(file);
       }
@@ -134,15 +150,16 @@ export default function UploadTimetablePage() {
       return;
     }
 
-    if (Object.keys(requiredFields).some(key => !columnMapping[key as keyof typeof columnMapping])) {
-      const missing = Object.entries(requiredFields).find(([key]) => !columnMapping[key]);
+    const missingFields = Object.keys(requiredFields).filter(key => !columnMapping[key]);
+    if (missingFields.length > 0) {
+      const missingLabels = missingFields.map(key => columnFields[key].label).join(', ');
       toast({
           variant: 'destructive',
           title: 'Column Mapping Incomplete',
-          description: `Please map the "${missing ? missing[1] : 'a required'}" field.`,
+          description: `Please map the following required fields: ${missingLabels}.`,
       });
       return;
-  }
+    }
 
     processData(file);
   }
@@ -163,7 +180,10 @@ export default function UploadTimetablePage() {
 
         const batch = writeBatch(firestore);
         let writeCount = 0;
-        const validRows = data.filter(row => row.unitCode && String(row.unitCode).trim() !== '');
+        const validRows = data.filter(row => {
+            const mappedUnitCodeKey = columnMapping['unitCode'];
+            return row[mappedUnitCodeKey] && String(row[mappedUnitCodeKey]).trim() !== '';
+        });
 
         if (validRows.length === 0 && !seedCollections) {
             toast({
@@ -174,6 +194,12 @@ export default function UploadTimetablePage() {
             setIsProcessing(false);
             return;
         }
+        
+        // This helper maps the original header from the file to our standard field key
+        const getRowValue = (row: ParsedRow, fieldKey: string) => {
+            const header = columnMapping[fieldKey];
+            return header ? row[header] : undefined;
+        };
 
         try {
             if (seedCollections) {
@@ -190,7 +216,8 @@ export default function UploadTimetablePage() {
             }
 
             for (const row of validRows) {
-                const [startHour, endHour] = String(row.time).split('-').map(t => parseInt(t, 10));
+                const timeValue = String(getRowValue(row, 'time') || '');
+                const [startHour, endHour] = timeValue.split(/[-–]/).map(t => parseInt(t, 10));
                 
                 if (isNaN(startHour) || isNaN(endHour)) {
                     console.warn("Skipping row with invalid time format:", row);
@@ -208,22 +235,27 @@ export default function UploadTimetablePage() {
                 const endTime = new Date(baseDate);
                 endTime.setHours(endHour);
 
-                const unitId = `unit-${String(row.unitCode).toLowerCase()}`;
-                const lecturerId = `lecturer-${String(row.lecturerName).replace(/\s+/g, '-').toLowerCase()}`;
-                const roomId = `room-${String(row.room).replace(/\s+/g, '-').toLowerCase()}`;
+                const unitCode = getRowValue(row, 'unitCode');
+                const lecturerName = getRowValue(row, 'lecturerName');
+                const roomName = getRowValue(row, 'room');
+                const unitName = getRowValue(row, 'unitName');
+                const day = getRowValue(row, 'day');
+
+                const unitId = `unit-${String(unitCode).toLowerCase()}`;
+                const lecturerId = `lecturer-${String(lecturerName).replace(/\s+/g, '-').toLowerCase()}`;
 
                 const timeString = `${String(startHour).padStart(2, '0')}:00 - ${String(endHour).padStart(2, '0')}:00`;
 
                 const classData = {
                   unitId: unitId,
                   lecturerId: lecturerId,
-                  lecturerName: row.lecturerName,
-                  roomId: roomId,
-                  day: row.day,
-                  time: row.time || timeString,
-                  unitCode: row.unitCode,
-                  unitName: row.unitName,
-                  room: row.room,
+                  lecturerName: lecturerName,
+                  roomId: `room-${String(roomName).replace(/\s+/g, '-').toLowerCase()}`,
+                  day: day,
+                  time: timeValue || timeString,
+                  unitCode: unitCode,
+                  unitName: unitName,
+                  room: roomName,
                   startTime: Timestamp.fromDate(startTime),
                   endTime: Timestamp.fromDate(endTime),
                 };
@@ -236,13 +268,14 @@ export default function UploadTimetablePage() {
                 batch.set(lecturerTimetableRef, classData);
                 writeCount++;
                 
-                const studentEmails = row.studentEmails || row.students;
-                const studentIds = (studentEmails || '').split(';').filter(Boolean).map((email: string) => `student-${email.split('@')[0]}`);
-
-                if (studentIds.length > 0) {
-                    const studentTimetableRef = doc(collection(firestore, 'studentTimetable'));
-                    batch.set(studentTimetableRef, { ...classData, studentIds });
-                    writeCount++;
+                const studentEmails = getRowValue(row, 'studentEmails');
+                if (studentEmails) {
+                    const studentIds = String(studentEmails).split(';').map(e => e.trim()).filter(Boolean).map((email: string) => `student-${email.split('@')[0]}`);
+                    if (studentIds.length > 0) {
+                        const studentTimetableRef = doc(collection(firestore, 'studentTimetable'));
+                        batch.set(studentTimetableRef, { ...classData, studentIds });
+                        writeCount++;
+                    }
                 }
             }
             
@@ -292,38 +325,22 @@ export default function UploadTimetablePage() {
               error: onError,
           });
       } else if (source instanceof File) { // Processing uploaded file
-          const fileType = source.type;
           const reader = new FileReader();
-
-          const mappedAndParsed = (data: any[]) => {
-              const invertedMapping = Object.entries(columnMapping).reduce((acc, [key, val]) => ({...acc, [val]: key}), {} as Record<string, string>);
-              const renamedData = data.map(row => {
-                  const newRow: Record<string, any> = {};
-                  for (const header in row) {
-                      if (invertedMapping[header]) {
-                          newRow[invertedMapping[header]] = row[header];
-                      }
-                  }
-                  return newRow;
-              });
-              onParsed(renamedData);
-          }
-
-          if (fileType === 'text/csv') {
+          if (source.type === 'text/csv' || source.name.endsWith('.csv')) {
               Papa.parse(source, {
                   header: true,
                   skipEmptyLines: true,
-                  complete: (results) => mappedAndParsed(results.data),
+                  complete: (results) => onParsed(results.data),
                   error: onError
               });
-          } else if (fileType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+          } else if (source.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || source.name.endsWith('.xlsx')) {
               reader.onload = (e) => {
                   const data = e.target?.result;
                   const workbook = XLSX.read(data, { type: 'array' });
                   const sheetName = workbook.SheetNames[0];
                   const worksheet = workbook.Sheets[sheetName];
                   const json = XLSX.utils.sheet_to_json(worksheet);
-                  mappedAndParsed(json);
+                  onParsed(json);
               };
               reader.onerror = () => onError(new Error("Error reading XLSX file."));
               reader.readAsArrayBuffer(source);
@@ -333,7 +350,7 @@ export default function UploadTimetablePage() {
 
   const resetSelection = () => {
     setFile(null);
-    setCsvHeaders([]);
+    setFileHeaders([]);
     setColumnMapping({});
     setStep('select');
     if (fileInputRef.current) {
@@ -358,7 +375,7 @@ export default function UploadTimetablePage() {
                 <h3 className="font-semibold text-foreground mb-2">Seed Database with Mock Data</h3>
                 <p className="text-sm text-muted-foreground mb-4">Click to populate Firestore with mock classrooms, course units, and a sample timetable.</p>
                  <Button onClick={handleSeedData} disabled={isProcessing}>
-                  {isProcessing && step !== 'map' ? (
+                  {isProcessing && !file ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Processing...
@@ -378,9 +395,9 @@ export default function UploadTimetablePage() {
               <h3 className="font-semibold text-foreground">Upload Timetable File</h3>
               {step === 'select' && (
                 <div className="grid w-full max-w-sm items-center gap-1.5">
-                    <Label htmlFor="csv-file">1. Select File (.csv, .xlsx)</Label>
+                    <Label htmlFor="timetable-file">1. Select File (.csv, .xlsx)</Label>
                     <Input 
-                    id="csv-file" 
+                    id="timetable-file" 
                     type="file" 
                     accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/pdf" 
                     onChange={handleFileChange} 
@@ -401,9 +418,9 @@ export default function UploadTimetablePage() {
                     </Alert>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-md">
-                        {Object.entries(requiredFields).map(([key, label]) => (
+                        {Object.entries(columnFields).map(([key, {label, required}]) => (
                             <div key={key} className="grid grid-cols-2 items-center gap-2">
-                                <Label htmlFor={`map-${key}`}>{label}</Label>
+                                <Label htmlFor={`map-${key}`}>{label} {required && <span className="text-destructive">*</span>}</Label>
                                 <Select
                                     value={columnMapping[key] || ''}
                                     onValueChange={(value) => setColumnMapping(prev => ({...prev, [key]: value}))}
@@ -412,7 +429,8 @@ export default function UploadTimetablePage() {
                                         <SelectValue placeholder="Select column..." />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {csvHeaders.map((header, index) => (
+                                        <SelectItem value="--ignore--">-- Ignore this field --</SelectItem>
+                                        {fileHeaders.map((header, index) => (
                                             <SelectItem key={`${header}-${index}`} value={header}>{header}</SelectItem>
                                         ))}
                                     </SelectContent>
@@ -426,7 +444,7 @@ export default function UploadTimetablePage() {
                         {isProcessing ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Processing...
+                            Uploading...
                           </>
                         ) : (
                           <>

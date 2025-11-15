@@ -8,6 +8,7 @@ import { useCollection, useFirestore } from "@/firebase";
 import { collection, query, where } from "firebase/firestore";
 import { Class as TimetableEntry } from "@/lib/data-contracts";
 import { useUserProfile } from "@/hooks/use-user-profile";
+import UpcomingClasses from "@/components/upcoming-classes";
 
 export default function StudentDashboard() {
   const { profile, isLoading: isProfileLoading } = useUserProfile();
@@ -39,6 +40,7 @@ export default function StudentDashboard() {
     <>
       <DashboardHeader title="My Timetable" />
       <main className="p-4 sm:p-6">
+        <UpcomingClasses schedule={schedule || []} isLoading={isLoading} />
         <Timetable
           schedule={schedule || []}
           isLoading={isLoading}

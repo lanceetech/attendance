@@ -12,31 +12,31 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser } from '@/firebase';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useUserProfile } from '@/hooks/use-user-profile';
 
 const settingsSchema = z.object({
-  lessonReminders: z.boolean().default(true),
-  timetableChanges: z.boolean().default(true),
-  emailNotifications: z.boolean().default(false),
+  newFeedbackNotifications: z.boolean().default(true),
+  newUserNotifications: z.boolean().default(false),
+  conflictResolutionSummary: z.boolean().default(false),
 });
 
-type UserSettings = z.infer<typeof settingsSchema>;
+type AdminSettings = z.infer<typeof settingsSchema>;
 
 export default function SettingsPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const { profile, isLoading: isProfileLoading } = useUserProfile();
+  const { isLoading: isProfileLoading } = useUserProfile();
 
-  const { control, handleSubmit, reset, formState: { isSubmitting, isDirty } } = useForm<UserSettings>({
+  const { control, handleSubmit, reset, formState: { isSubmitting, isDirty } } = useForm<AdminSettings>({
     resolver: zodResolver(settingsSchema),
     defaultValues: {
-      lessonReminders: true,
-      timetableChanges: true,
-      emailNotifications: false,
+      newFeedbackNotifications: true,
+      newUserNotifications: false,
+      conflictResolutionSummary: false,
     },
   });
 
@@ -45,20 +45,20 @@ export default function SettingsPage() {
       const settingsDocRef = doc(firestore, 'users', user.uid, 'settings', 'preferences');
       getDoc(settingsDocRef).then((docSnap) => {
         if (docSnap.exists()) {
-          reset(docSnap.data() as UserSettings);
+          reset(docSnap.data() as AdminSettings);
         }
       });
     }
   }, [user, firestore, reset]);
 
-  const onSubmit = (data: UserSettings) => {
+  const onSubmit = (data: AdminSettings) => {
     if (!user || !firestore) {
       toast({ variant: 'destructive', title: 'Error', description: 'User not logged in.' });
       return;
     }
     const settingsDocRef = doc(firestore, 'users', user.uid, 'settings', 'preferences');
     setDocumentNonBlocking(settingsDocRef, data, { merge: true });
-    toast({ title: 'Preferences Saved', description: 'Your notification settings have been updated.' });
+    toast({ title: 'Preferences Saved', description: 'Your administrator settings have been updated.' });
   };
 
   if (isProfileLoading) {
@@ -85,28 +85,28 @@ export default function SettingsPage() {
 
   return (
     <>
-      <DashboardHeader title="Settings" />
+      <DashboardHeader title="Administrator Settings" />
       <main className="p-4 sm:p-6 flex justify-center">
         <Card className="w-full max-w-2xl">
           <CardHeader>
-            <CardTitle className="font-headline">Notification Settings</CardTitle>
-            <CardDescription>Manage how you receive notifications from ClassSync.</CardDescription>
+            <CardTitle className="font-headline">Admin Notifications</CardTitle>
+            <CardDescription>Manage notifications for key system events.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <div className="flex items-center justify-between rounded-lg border p-4">
                 <div className="space-y-0.5">
-                  <Label htmlFor="lessonReminders" className="text-base">Lesson Reminders</Label>
+                  <Label htmlFor="newFeedbackNotifications" className="text-base">New Feedback Alerts</Label>
                   <p className="text-sm text-muted-foreground">
-                    Get push notifications for your upcoming classes.
+                    Receive an email when a user submits feedback.
                   </p>
                 </div>
                 <Controller
-                  name="lessonReminders"
+                  name="newFeedbackNotifications"
                   control={control}
                   render={({ field }) => (
                     <Switch
-                      id="lessonReminders"
+                      id="newFeedbackNotifications"
                       checked={field.value}
                       onCheckedChange={field.onChange}
                     />
@@ -115,17 +115,17 @@ export default function SettingsPage() {
               </div>
               <div className="flex items-center justify-between rounded-lg border p-4">
                 <div className="space-y-0.5">
-                  <Label htmlFor="timetableChanges" className="text-base">Timetable Changes</Label>
+                  <Label htmlFor="newUserNotifications" className="text-base">New User Alerts</Label>
                   <p className="text-sm text-muted-foreground">
-                    Receive alerts when your teaching schedule is updated.
+                    Get notified when a new student or lecturer signs up.
                   </p>
                 </div>
                 <Controller
-                  name="timetableChanges"
+                  name="newUserNotifications"
                   control={control}
                   render={({ field }) => (
                     <Switch
-                      id="timetableChanges"
+                      id="newUserNotifications"
                       checked={field.value}
                       onCheckedChange={field.onChange}
                     />
@@ -134,17 +134,17 @@ export default function SettingsPage() {
               </div>
               <div className="flex items-center justify-between rounded-lg border p-4">
                 <div className="space-y-0.5">
-                  <Label htmlFor="emailNotifications" className="text-base">Email Notifications</Label>
+                  <Label htmlFor="conflictResolutionSummary" className="text-base">Conflict Resolution Summary</Label>
                   <p className="text-sm text-muted-foreground">
-                    Receive important administrative updates via email.
+                    Receive a weekly email digest of resolved timetable conflicts.
                   </p>
                 </div>
                 <Controller
-                  name="emailNotifications"
+                  name="conflictResolutionSummary"
                   control={control}
                   render={({ field }) => (
                     <Switch
-                      id="emailNotifications"
+                      id="conflictResolutionSummary"
                       checked={field.value}
                       onCheckedChange={field.onChange}
                     />
@@ -161,3 +161,4 @@ export default function SettingsPage() {
     </>
   );
 }
+

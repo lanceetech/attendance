@@ -12,6 +12,7 @@ import { Class as TimetableEntry } from "@/lib/data-contracts";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import UpcomingClasses from "@/components/upcoming-classes";
 import PrintableReport from "@/components/printable-report";
+import UpcomingClassNotification from "@/components/upcoming-class-notification";
 
 export default function LecturerDashboard() {
   const { profile, isLoading: isProfileLoading } = useUserProfile();
@@ -39,6 +40,7 @@ export default function LecturerDashboard() {
     <>
       <DashboardHeader title="My Timetable" />
       <main className="p-4 sm:p-6">
+        <UpcomingClassNotification schedule={schedule || []} />
         <PrintableReport title="Lecturer Timetable">
             <Timetable 
               schedule={schedule || []}

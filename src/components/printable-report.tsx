@@ -16,18 +16,18 @@ export default function PrintableReport({ title, children }: PrintableReportProp
   return (
     <div className="printable-report-container hidden print:block">
       <header className="mb-8">
-        <div className="flex items-center justify-between">
+        <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
-                <Logo className="h-20 w-20" />
+                <Logo className="h-16 w-16" />
                 <div>
-                    <h1 className="text-4xl font-headline font-bold text-foreground">
+                    <h1 className="text-3xl font-headline font-bold text-foreground">
                         Umma University
                     </h1>
                     <p className="text-muted-foreground">ClassSync System</p>
                 </div>
             </div>
             <div className="text-right">
-                <h2 className="text-2xl font-headline font-semibold">{title}</h2>
+                <h2 className="text-xl font-headline font-semibold">{title}</h2>
                 <p className="text-sm text-muted-foreground">Generated on: {new Date().toLocaleDateString()}</p>
             </div>
         </div>

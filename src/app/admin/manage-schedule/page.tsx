@@ -13,13 +13,24 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Edit } from "lucide-react";
+import { PlusCircle, Edit, Trash2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useCollection, useFirestore } from "@/firebase";
-import { collection, query, where } from "firebase/firestore";
+import { collection, doc, deleteDoc } from "firebase/firestore";
 import { Class as ClassEntry, UserProfile } from "@/lib/data-contracts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EditClassDialog } from "@/components/edit-class-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 // Mock data to prevent query errors in this environment
 const mockLecturers: UserProfile[] = [
@@ -33,8 +44,11 @@ const mockLecturers: UserProfile[] = [
 export default function ManageSchedulePage() {
   const isMobile = useIsMobile();
   const firestore = useFirestore();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { toast } = useToast();
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState<ClassEntry | null>(null);
+  const [classToDelete, setClassToDelete] = useState<ClassEntry | null>(null);
 
   const classesQuery = useMemo(() => {
     if (!firestore) return null;
@@ -45,16 +59,52 @@ export default function ManageSchedulePage() {
 
   const handleAddNew = () => {
     setSelectedClass(null);
-    setIsDialogOpen(true);
+    setIsEditDialogOpen(true);
   };
 
   const handleEdit = (classEntry: ClassEntry) => {
     setSelectedClass(classEntry);
-    setIsDialogOpen(true);
+    setIsEditDialogOpen(true);
   };
 
-  const handleDialogClose = () => {
-    setIsDialogOpen(false);
+  const handleDelete = (classEntry: ClassEntry) => {
+    setClassToDelete(classEntry);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!firestore || !classToDelete) return;
+
+    try {
+      // Delete from primary classes collection
+      const classDocRef = doc(firestore, 'classes', classToDelete.id);
+      await deleteDoc(classDocRef);
+      
+      // Delete from denormalized timetable collections
+      const lecturerTimetableRef = doc(firestore, 'lecturerTimetable', classToDelete.id);
+      await deleteDoc(lecturerTimetableRef);
+      const studentTimetableRef = doc(firestore, 'studentTimetable', classToDelete.id);
+      await deleteDoc(studentTimetableRef);
+
+      toast({
+        title: "Class Deleted",
+        description: `${classToDelete.unitCode} has been removed from the schedule.`,
+      });
+    } catch (error) {
+      console.error("Error deleting class: ", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not delete the class. Please try again.",
+      });
+    } finally {
+      setIsDeleteDialogOpen(false);
+      setClassToDelete(null);
+    }
+  };
+
+  const handleEditDialogClose = () => {
+    setIsEditDialogOpen(false);
     setSelectedClass(null);
   }
 
@@ -93,10 +143,16 @@ export default function ManageSchedulePage() {
                             <p className="text-sm text-muted-foreground">{classEntry.lecturerName} - {classEntry.day} {classEntry.time}</p>
                             <p className="text-sm text-muted-foreground">Room: {classEntry.room}</p>
                         </div>
-                        <Button variant="outline" size="icon" onClick={() => handleEdit(classEntry)}>
-                            <Edit className="h-4 w-4"/>
-                            <span className="sr-only">Edit</span>
-                        </Button>
+                        <div className="flex gap-2">
+                            <Button variant="outline" size="icon" onClick={() => handleEdit(classEntry)}>
+                                <Edit className="h-4 w-4"/>
+                                <span className="sr-only">Edit</span>
+                            </Button>
+                            <Button variant="destructive" size="icon" onClick={() => handleDelete(classEntry)}>
+                                <Trash2 className="h-4 w-4"/>
+                                <span className="sr-only">Delete</span>
+                            </Button>
+                        </div>
                     </div>
                   </div>
                 ))}
@@ -110,7 +166,7 @@ export default function ManageSchedulePage() {
                       <TableHead>Lecturer</TableHead>
                       <TableHead>Day & Time</TableHead>
                       <TableHead>Room</TableHead>
-                      <TableHead><span className="sr-only">Actions</span></TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -127,7 +183,10 @@ export default function ManageSchedulePage() {
                         </TableCell>
                         <TableCell>{classEntry.room}</TableCell>
                         <TableCell className="text-right">
-                          <Button variant="outline" size="sm" onClick={() => handleEdit(classEntry)}>Edit</Button>
+                          <div className="flex gap-2 justify-end">
+                            <Button variant="outline" size="sm" onClick={() => handleEdit(classEntry)}>Edit</Button>
+                            <Button variant="destructive" size="sm" onClick={() => handleDelete(classEntry)}>Delete</Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -139,12 +198,27 @@ export default function ManageSchedulePage() {
         </Card>
       </main>
       <EditClassDialog 
-        isOpen={isDialogOpen} 
-        onClose={handleDialogClose} 
+        isOpen={isEditDialogOpen} 
+        onClose={handleEditDialogClose} 
         classData={selectedClass}
         lecturers={mockLecturers}
         lecturersLoading={false}
       />
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the class for{' '}
+              <span className="font-bold">{classToDelete?.unitCode} - {classToDelete?.unitName}</span> and remove it from all related timetables.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete}>Confirm Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

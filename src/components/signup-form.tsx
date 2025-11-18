@@ -15,7 +15,10 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import Link from 'next/link';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { ScanLine } from 'lucide-react';
+import { ScanLine, XCircle } from 'lucide-react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import jsQR from 'jsqr';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -40,6 +43,11 @@ export default function SignupForm() {
   const auth = useAuth();
   const firestore = useFirestore();
   const { toast } = useToast();
+  
+  const [isScanning, setIsScanning] = useState(false);
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const animationFrameId = useRef<number>();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -52,6 +60,101 @@ export default function SignupForm() {
   });
 
   const role = form.watch('role');
+
+  const stopScan = useCallback(() => {
+    setIsScanning(false);
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+    if (animationFrameId.current) {
+        cancelAnimationFrame(animationFrameId.current);
+    }
+  }, []);
+
+  const handleScanResult = useCallback((data: string) => {
+    stopScan();
+    form.setValue('admissionNumber', data, { shouldValidate: true });
+    toast({
+        title: 'ID Scanned Successfully',
+        description: `Admission number set to: ${data}`,
+    });
+  }, [stopScan, form, toast]);
+
+  const scanFrame = useCallback(() => {
+    if (!videoRef.current || videoRef.current.paused || videoRef.current.ended) {
+      return;
+    }
+  
+    const video = videoRef.current;
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+      animationFrameId.current = requestAnimationFrame(scanFrame);
+      return;
+    }
+  
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const context = canvas.getContext('2d');
+    
+    if (context) {
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: "dontInvert",
+      });
+  
+      if (code) {
+        handleScanResult(code.data);
+        return; 
+      }
+    }
+    
+    animationFrameId.current = requestAnimationFrame(scanFrame);
+  }, [handleScanResult]);
+
+
+  const startScan = async () => {
+    setIsScanning(true);
+    setHasCameraPermission(null);
+
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play();
+        }
+        setHasCameraPermission(true);
+      } catch (error) {
+        console.error('Error accessing camera:', error);
+        setHasCameraPermission(false);
+        setIsScanning(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (isScanning && hasCameraPermission) {
+        animationFrameId.current = requestAnimationFrame(scanFrame);
+    }
+    return () => {
+        if(animationFrameId.current) {
+            cancelAnimationFrame(animationFrameId.current);
+        }
+        stopScan();
+    };
+  }, [isScanning, hasCameraPermission, scanFrame, stopScan]);
+
+
+  const handleScanButtonClick = () => {
+    if (isScanning) {
+        stopScan();
+    } else {
+        startScan();
+    }
+  }
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!auth || !firestore) {
@@ -183,7 +286,7 @@ export default function SignupForm() {
                         <FormControl>
                             <Input placeholder="e.g., SCI/0001/2024" {...field} />
                         </FormControl>
-                        <Button type="button" variant="outline" size="icon" disabled>
+                        <Button type="button" variant="outline" size="icon" onClick={handleScanButtonClick}>
                             <ScanLine className="h-4 w-4" />
                             <span className="sr-only">Scan ID</span>
                         </Button>
@@ -192,6 +295,21 @@ export default function SignupForm() {
                 </FormItem>
                 )}
             />
+          )}
+
+          {isScanning && (
+            <div className="space-y-2">
+                <video ref={videoRef} className="w-full aspect-video rounded-md bg-muted" playsInline autoPlay />
+                {hasCameraPermission === false && (
+                    <Alert variant="destructive">
+                        <XCircle className="h-4 w-4" />
+                        <AlertTitle>Camera Access Denied</AlertTitle>
+                        <AlertDescription>
+                            Allow camera permission in your browser to scan your ID.
+                        </AlertDescription>
+                    </Alert>
+                )}
+            </div>
           )}
 
           <FormField
@@ -229,3 +347,5 @@ export default function SignupForm() {
     </div>
   );
 }
+
+    

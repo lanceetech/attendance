@@ -6,6 +6,7 @@ export type UserProfile = {
   name: string;
   role: 'admin' | 'lecturer' | 'student';
   email: string;
+  admissionNumber?: string;
   avatar?: string;
 }
 

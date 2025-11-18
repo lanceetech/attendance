@@ -15,12 +15,22 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import Link from 'next/link';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { ScanLine } from 'lucide-react';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
   email: z.string().email({ message: 'Please enter a valid email address.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
   role: z.enum(['student', 'lecturer'], { required_error: 'You must select a role.' }),
+  admissionNumber: z.string().optional(),
+}).refine((data) => {
+    if (data.role === 'student') {
+        return data.admissionNumber && data.admissionNumber.length > 0;
+    }
+    return true;
+}, {
+    message: 'Admission number is required for students.',
+    path: ['admissionNumber'],
 });
 
 const adminEmail = 'classSync.admin@umma.ac.ke';
@@ -37,8 +47,11 @@ export default function SignupForm() {
       name: '',
       email: '',
       password: '',
+      admissionNumber: '',
     },
   });
+
+  const role = form.watch('role');
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!auth || !firestore) {
@@ -73,13 +86,17 @@ export default function SignupForm() {
             avatarId = studentAvatar?.id;
         }
 
-        const profileData = {
+        const profileData: any = {
           uid: user.uid,
           name: values.name,
           email: values.email,
           role: role,
           avatar: avatarId
         };
+        
+        if (role === 'student') {
+            profileData.admissionNumber = values.admissionNumber;
+        }
 
         await setDoc(userDocRef, profileData, { merge: true });
         
@@ -133,20 +150,7 @@ export default function SignupForm() {
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Password</FormLabel>
-                <FormControl>
-                  <Input type="password" placeholder="••••••••" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
+           <FormField
             control={form.control}
             name="role"
             render={({ field }) => (
@@ -167,6 +171,43 @@ export default function SignupForm() {
               </FormItem>
             )}
           />
+
+          {role === 'student' && (
+             <FormField
+                control={form.control}
+                name="admissionNumber"
+                render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Admission Number</FormLabel>
+                    <div className="flex items-center gap-2">
+                        <FormControl>
+                            <Input placeholder="e.g., SCI/0001/2024" {...field} />
+                        </FormControl>
+                        <Button type="button" variant="outline" size="icon" disabled>
+                            <ScanLine className="h-4 w-4" />
+                            <span className="sr-only">Scan ID</span>
+                        </Button>
+                    </div>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
+          )}
+
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Password</FormLabel>
+                <FormControl>
+                  <Input type="password" placeholder="••••••••" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
           <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
             {form.formState.isSubmitting ? 'Creating Account...' : 'Create Account'}
           </Button>

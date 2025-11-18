@@ -29,6 +29,10 @@
           "description": "The email address of the user.",
           "format": "email"
         },
+        "admissionNumber": {
+          "type": "string",
+          "description": "The unique admission number for a student."
+        },
         "avatar": {
             "type": "string",
             "description": "A reference to an image placeholder ID."

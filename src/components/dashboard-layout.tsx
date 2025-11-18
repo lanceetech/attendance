@@ -64,6 +64,7 @@ const menuItems = {
   ],
   student: [
     { href: "/student", label: "My Timetable", icon: Calendar },
+    { href: "/student/scan-attendance", label: "Scan Attendance", icon: Camera },
     { href: "/student/feedback", label: "Report Issue", icon: Send },
     { href: "/student/settings", label: "Settings", icon: Settings },
   ],

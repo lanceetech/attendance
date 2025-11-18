@@ -32,7 +32,7 @@ export default function AdminDashboard() {
 
 
   const stats = [
-    { title: "Total Units", value: courseUnits?.length ?? 0, icon: BookOpen, href: "/admin/manage-schedule", isLoading: loadingUnits },
+    { title: "Total Units", value: courseUnits?.length ?? 0, icon: BookOpen, href: "/admin/units", isLoading: loadingUnits },
     { title: "Registered Users", value: users?.length ?? 0, icon: Users, href: "/admin/users", isLoading: loadingUsers },
     { title: "Classrooms", value: classrooms?.length ?? 0, icon: DoorOpen, href: "/admin/classrooms", isLoading: loadingClassrooms },
     { title: "Feedback Items", value: recentFeedback?.length ?? 0, icon: MessageSquare, href: "/admin/feedback", isLoading: loadingFeedback },
@@ -76,6 +76,9 @@ export default function AdminDashboard() {
                     </Button>
                      <Button asChild>
                         <Link href="/admin/users">Manage Users</Link>
+                    </Button>
+                    <Button asChild>
+                        <Link href="/admin/units">Manage Units</Link>
                     </Button>
                     <Button asChild>
                         <Link href="/admin/classrooms">Manage Classrooms</Link>

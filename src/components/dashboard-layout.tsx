@@ -33,6 +33,7 @@ import {
   Settings,
   FileText,
   MessageSquare,
+  BookOpenCheck,
 } from "lucide-react";
 import Logo from "./logo";
 import { Button } from "./ui/button";
@@ -45,6 +46,7 @@ const menuItems = {
   admin: [
     { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
     { href: "/admin/manage-schedule", label: "Manage Schedule", icon: Calendar },
+    { href: "/admin/units", label: "Manage Units", icon: BookOpenCheck },
     { href: "/admin/upload-timetable", label: "Upload Timetable", icon: FileUp },
     { href: "/admin/resolve-conflicts", label: "Resolve Conflicts", icon: AlertTriangle },
     { href: "/admin/classrooms", label: "Classrooms", icon: DoorOpen },

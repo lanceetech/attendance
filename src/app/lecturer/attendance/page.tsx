@@ -28,7 +28,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import Image from 'next/image';
-import { QrCode, Users } from 'lucide-react';
+import { QrCode, Users, Download } from 'lucide-react';
 import { useCollection, useFirestore } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import { Class as TimetableEntry, AttendanceRecord } from '@/lib/data-contracts';
@@ -43,12 +43,15 @@ import {
 } from '@/components/ui/table';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import Papa from 'papaparse';
+import { useToast } from '@/hooks/use-toast';
 
 export default function AttendancePage() {
   const {
     profile
   } = useUserProfile();
   const firestore = useFirestore();
+  const { toast } = useToast();
   const [selectedClassId, setSelectedClassId] = useState < string | null > (null);
   const [isQrVisible, setIsQrVisible] = useState(false);
 
@@ -91,6 +94,38 @@ export default function AttendancePage() {
     return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
       data
     )}`;
+  };
+  
+  const handleDownloadAttendance = () => {
+    if (!attendanceList || attendanceList.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'No Data',
+        description: 'There is no attendance data to download.',
+      });
+      return;
+    }
+
+    const classDetails = getSelectedClassDetails();
+    const formattedData = attendanceList.map(record => ({
+      'Student Name': record.studentName,
+      'Admission Number': record.admissionNumber || 'N/A',
+      'Time Checked In': record.timestamp ? new Date(record.timestamp.seconds * 1000).toLocaleTimeString() : 'N/A',
+    }));
+
+    const csv = Papa.unparse(formattedData);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    
+    const date = new Date().toISOString().split('T')[0];
+    const fileName = `${classDetails?.unitCode || 'attendance'}-report-${date}.csv`;
+    link.setAttribute('download', fileName);
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const selectedClassDetails = getSelectedClassDetails();
@@ -146,13 +181,26 @@ export default function AttendancePage() {
 
         <Card className="md:col-span-1">
            <CardHeader>
-            <CardTitle className="font-headline flex items-center gap-2">
-                <Users />
-                Live Attendance
-            </CardTitle>
-            <CardDescription>
-                {selectedClassId ? `Showing attendance for ${selectedClassDetails?.unitCode}` : "Select a class to see live attendance."}
-            </CardDescription>
+            <div className="flex justify-between items-center">
+                <div>
+                    <CardTitle className="font-headline flex items-center gap-2">
+                        <Users />
+                        Live Attendance
+                    </CardTitle>
+                    <CardDescription>
+                        {selectedClassId ? `Showing attendance for ${selectedClassDetails?.unitCode}` : "Select a class to see live attendance."}
+                    </CardDescription>
+                </div>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDownloadAttendance}
+                    disabled={!attendanceList || attendanceList.length === 0}
+                >
+                    <Download className="mr-2 h-4 w-4" />
+                    Download
+                </Button>
+            </div>
            </CardHeader>
            <CardContent>
             <div className="border rounded-lg h-96 overflow-y-auto">
@@ -238,3 +286,5 @@ export default function AttendancePage() {
     </>
   );
 }
+
+    

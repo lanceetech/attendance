@@ -43,6 +43,7 @@ export type AttendanceRecord = {
   id: string;
   studentId: string;
   studentName: string;
+  admissionNumber?: string;
   timestamp: Timestamp;
   status: 'Present' | 'Absent' | 'Late';
 };

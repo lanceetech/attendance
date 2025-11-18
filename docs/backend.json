@@ -160,6 +160,10 @@
             "type": "string",
             "description": "The name of the student who attended."
         },
+        "admissionNumber": {
+            "type": "string",
+            "description": "The admission number of the student who attended."
+        },
         "timestamp": {
           "type": "string",
           "description": "The timestamp when the attendance was recorded.",

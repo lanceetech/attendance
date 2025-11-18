@@ -146,6 +146,7 @@ export default function ScanAttendancePage() {
         await addDocumentNonBlocking(attendanceRef, {
             studentId: user.uid,
             studentName: profile.name,
+            admissionNumber: profile.admissionNumber,
             timestamp: serverTimestamp(),
             status: 'Present',
         });

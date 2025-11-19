@@ -1,3 +1,4 @@
+
 'use client';
 
 import Logo from './logo';
@@ -23,7 +24,7 @@ export default function PrintableReport({ title, children }: PrintableReportProp
                     <h1 className="text-3xl font-headline font-bold text-foreground">
                         Umma University
                     </h1>
-                    <p className="text-muted-foreground">ClassSync System</p>
+                    <p className="text-muted-foreground">Scheduler System</p>
                 </div>
             </div>
             <div className="text-right">

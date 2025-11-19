@@ -110,11 +110,11 @@ export default function ScanAttendancePage() {
     stopScan();
     setProcessing(true);
 
-    if (!data.startsWith('class-sync-attendance::')) {
+    if (!data.startsWith('unified-scheduler-attendance::')) {
       toast({
         variant: 'destructive',
         title: 'Invalid QR Code',
-        description: 'This is not a valid ClassSync attendance QR code.',
+        description: 'This is not a valid attendance QR code for this system.',
       });
       setProcessing(false);
       return;

@@ -87,10 +87,10 @@ export default function AttendancePage() {
 
   const generatedQrCodeUrl = () => {
     const classDetails = getSelectedClassDetails();
-    if (!classDetails) return 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=ClassSync';
+    if (!classDetails) return 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=UnifiedScheduler';
 
     // The data includes the class ID for the student to write their attendance record to.
-    const data = `class-sync-attendance::${classDetails.id}`;
+    const data = `unified-scheduler-attendance::${classDetails.id}`;
     return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
       data
     )}`;

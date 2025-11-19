@@ -102,7 +102,7 @@ export default function DashboardLayout({
           <SidebarHeader>
             <div className="flex items-center gap-2">
               <Logo className="h-8 w-8" />
-              <span className="text-xl font-headline font-semibold">ClassSync</span>
+              <span className="text-lg font-headline font-semibold">Scheduler</span>
             </div>
           </SidebarHeader>
           <SidebarContent>

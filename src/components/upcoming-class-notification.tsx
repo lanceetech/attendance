@@ -13,7 +13,7 @@ interface UpcomingClassNotificationProps {
 }
 
 const NOTIFICATION_WINDOW_MINUTES = 60; // Notify if class is within 60 minutes
-const SESSION_STORAGE_KEY = 'classSyncUpcomingNotificationShown';
+const SESSION_STORAGE_KEY = 'unifiedSchedulerUpcomingNotificationShown';
 
 export default function UpcomingClassNotification({ schedule }: UpcomingClassNotificationProps) {
   const { toast } = useToast();

@@ -6,7 +6,7 @@ import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { AuthProvider } from '@/components/auth-provider';
 
 export const metadata: Metadata = {
-  title: 'ClassSync: Smart Academic Scheduler & Attendance System',
+  title: 'A Unified Smart Scheduler and Attendance Tracking System',
   description: 'Manage and resolve timetable conflicts, track attendance with QR codes, and monitor classroom status.',
   manifest: '/manifest.json',
 };

@@ -16,7 +16,7 @@ export default function Home() {
       </div>
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-headline">ClassSync</CardTitle>
+          <CardTitle className="text-2xl font-headline">Scheduler & Attendance</CardTitle>
           <CardDescription>Sign in to access your dashboard</CardDescription>
         </CardHeader>
         <CardContent>

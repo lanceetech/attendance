@@ -18,7 +18,7 @@ export default function SignupPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-headline">Create an Account</CardTitle>
-          <CardDescription>Join ClassSync to manage your academic life.</CardDescription>
+          <CardDescription>Join the scheduler to manage your academic life.</CardDescription>
         </CardHeader>
         <CardContent>
           <SignupForm />

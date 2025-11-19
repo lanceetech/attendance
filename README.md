@@ -1,4 +1,4 @@
-# ClassSync: Smart Academic Scheduler & Attendance System
+# A Unified Smart Scheduler and Attendance Tracking System
 
 This is a Next.js application built in Firebase Studio that provides a platform for managing academic schedules, tracking student attendance, and resolving timetable conflicts.
 

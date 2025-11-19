@@ -90,7 +90,7 @@ export default function SettingsPage() {
         <Card className="w-full max-w-2xl">
           <CardHeader>
             <CardTitle className="font-headline">Notification Settings</CardTitle>
-            <CardDescription>Manage how you receive notifications from ClassSync.</CardDescription>
+            <CardDescription>Manage how you receive notifications from the system.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">

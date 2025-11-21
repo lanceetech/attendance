@@ -208,6 +208,7 @@ export default function AttendancePage() {
                     <TableHeader>
                         <TableRow>
                             <TableHead>Student</TableHead>
+                            <TableHead>Admission No.</TableHead>
                             <TableHead className="text-right">Time Checked In</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -221,13 +222,14 @@ export default function AttendancePage() {
                                             <Skeleton className="h-4 w-32" />
                                         </div>
                                     </TableCell>
+                                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                                     <TableCell className="text-right"><Skeleton className="h-4 w-20 ml-auto" /></TableCell>
                                 </TableRow>
                             ))
                         )}
                         {!isAttendanceLoading && attendanceList?.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={2} className="text-center text-muted-foreground h-24">
+                                <TableCell colSpan={3} className="text-center text-muted-foreground h-24">
                                     No students have checked in yet.
                                 </TableCell>
                             </TableRow>
@@ -237,12 +239,12 @@ export default function AttendancePage() {
                                 <TableCell>
                                     <div className="flex items-center gap-3">
                                         <Avatar className="h-9 w-9">
-                                            {/* In a real app, you'd fetch the student's avatar */}
                                             <AvatarFallback>{att.studentName?.charAt(0)}</AvatarFallback>
                                         </Avatar>
                                         <span className="font-medium">{att.studentName}</span>
                                     </div>
                                 </TableCell>
+                                <TableCell className="font-mono text-xs">{att.admissionNumber || 'N/A'}</TableCell>
                                 <TableCell className="text-right">
                                     {att.timestamp ? new Date(att.timestamp.seconds * 1000).toLocaleTimeString() : 'N/A'}
                                 </TableCell>

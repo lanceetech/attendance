@@ -21,4 +21,3 @@ This project is built with a modern, robust, and scalable tech stack:
 - **State Management**: React Hooks (`useState`, `useContext`, `useReducer`) for managing component and application state.
 - **Form Handling**: [React Hook Form](https://react-hook-form.com/) and [Zod](https://zod.dev/) for efficient and type-safe form validation.
 - **Icons**: [Lucide React](https://lucide.dev/) for a comprehensive and lightweight icon set.
-# attendance
